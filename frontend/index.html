@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AI-powered recipe generator with camera ingredient detection, voice input, and smart cooking suggestions. Powered by Gemini AI.">
+    <meta name="theme-color" content="#FF6B6B">
+    <title>Gourmet AI — Smart Recipe Generator</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+    <!-- ── Animated Background Orbs ──────────────────────────────────────── -->
+    <div class="bg-orbs" aria-hidden="true">
+        <div class="orb"></div>
+        <div class="orb"></div>
+        <div class="orb"></div>
+    </div>
+
+    <!-- ── Toast Container ───────────────────────────────────────────────── -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- ── Theme Toggle ──────────────────────────────────────────────────── -->
+    <button class="theme-toggle" id="themeToggle" title="Toggle dark mode" aria-label="Toggle dark mode">🌙</button>
+
+    <!-- ── Main Container ────────────────────────────────────────────────── -->
+    <div class="app-container">
+
+        <!-- ── Header ────────────────────────────────────────────────────── -->
+        <header class="app-header">
+            <span class="logo-icon">🍳</span>
+            <h1>Gourmet AI</h1>
+            <p class="subtitle">Transform your ingredients into culinary masterpieces with the power of AI</p>
+        </header>
+
+        <!-- ── Main Input Card ───────────────────────────────────────────── -->
+        <div class="glass-card" style="animation-delay: 0.1s;">
+
+            <!-- Input Method Tabs -->
+            <div class="input-methods">
+                <button class="input-method-btn active" data-method="type" id="tabType">
+                    ⌨️ <span class="btn-label">Type</span>
+                </button>
+                <button class="input-method-btn" data-method="voice" id="tabVoice">
+                    🎤 <span class="btn-label">Voice</span>
+                </button>
+                <button class="input-method-btn" data-method="camera" id="tabCamera">
+                    📷 <span class="btn-label">Camera</span>
+                </button>
+            </div>
+
+            <!-- ── Panel: Type ───────────────────────────────────────────── -->
+            <div class="input-panel active" id="panel-type">
+                <!-- Ingredients input is always visible since voice/camera fill it -->
+            </div>
+
+            <!-- ── Panel: Voice ──────────────────────────────────────────── -->
+            <div class="input-panel" id="panel-voice">
+                <div class="voice-section">
+                    <button type="button" class="voice-btn-large" id="voiceBtn" aria-label="Start voice recording">
+                        🎤
+                    </button>
+                    <p class="voice-status" id="voiceStatus">Tap to speak your ingredients</p>
+                </div>
+            </div>
+
+            <!-- ── Panel: Camera ─────────────────────────────────────────── -->
+            <div class="input-panel" id="panel-camera">
+                <div class="camera-section">
+                    <div class="camera-preview-wrapper">
+                        <video id="cameraVideo" autoplay playsinline muted style="display: none;"></video>
+                        <div class="camera-placeholder" id="cameraPlaceholder">
+                            <span class="cam-icon">📷</span>
+                            <span>Point your camera at ingredients</span>
+                        </div>
+                    </div>
+                    <div class="camera-controls">
+                        <button class="btn btn-primary" id="cameraStartBtn">📷 Start Camera</button>
+                        <button class="btn btn-primary" id="cameraCaptureBtn" style="display: none;">⚡ Detect Ingredients</button>
+                        <button class="btn btn-secondary" id="cameraStopBtn" style="display: none;">⏹ Stop</button>
+                    </div>
+                    <div class="detected-ingredients-box" id="detectedBox">
+                        <h4>✅ Detected Ingredients</h4>
+                        <div class="detected-tags"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Recipe Form (Always Visible) ──────────────────────────── -->
+            <form id="recipeForm">
+                <div class="form-group">
+                    <label for="ingredientsInput">
+                        Ingredients
+                        <span class="label-hint">— what's in your kitchen?</span>
+                    </label>
+                    <textarea
+                        class="form-input"
+                        id="ingredientsInput"
+                        name="ingredients"
+                        required
+                        placeholder="e.g., chicken breast, bell peppers, garlic, olive oil, rice..."
+                    ></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="cuisineInput">
+                            Cuisine Style
+                            <span class="label-hint">(optional)</span>
+                        </label>
+                        <input
+                            type="text"
+                            class="form-input"
+                            id="cuisineInput"
+                            name="cuisine"
+                            placeholder="e.g., Italian, Thai, Indian"
+                        >
+                    </div>
+                    <div class="form-group">
+                        <label for="dietaryInput">
+                            Dietary Preferences
+                            <span class="label-hint">(optional)</span>
+                        </label>
+                        <input
+                            type="text"
+                            class="form-input"
+                            id="dietaryInput"
+                            name="dietary"
+                            placeholder="e.g., vegan, keto, gluten-free"
+                        >
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-full" id="submitBtn">
+                    ✨ Generate Recipe
+                </button>
+            </form>
+        </div>
+
+        <!-- ── Loading Overlay ───────────────────────────────────────────── -->
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="loading-spinner"></div>
+            <p>Crafting your perfect recipe...</p>
+            <p class="loading-sub">Our AI chef is working on something special ✨</p>
+        </div>
+
+        <!-- ── Recipe Result ─────────────────────────────────────────────── -->
+        <div class="recipe-result" id="recipeResult">
+            <div class="recipe-card">
+                <div class="recipe-card-body">
+                    <h2 class="recipe-title" id="recipeTitle"></h2>
+
+                    <div class="recipe-meta" id="recipeMeta"></div>
+
+                    <!-- Ingredients -->
+                    <div class="recipe-section">
+                        <h3><span class="section-icon">🥘</span> Ingredients</h3>
+                        <ul class="ingredients-list" id="ingredientsList"></ul>
+                    </div>
+
+                    <!-- Instructions -->
+                    <div class="recipe-section">
+                        <h3><span class="section-icon">👨‍🍳</span> Instructions</h3>
+                        <ol class="instructions-list" id="instructionsList"></ol>
+                    </div>
+
+                    <!-- Nutrition -->
+                    <div class="recipe-section" id="nutritionSection" style="display: none;">
+                        <h3><span class="section-icon">📊</span> Nutrition (per serving)</h3>
+                        <div class="nutrition-grid" id="nutritionGrid"></div>
+                    </div>
+
+                    <!-- Chef's Notes -->
+                    <div class="recipe-section" id="notesSection" style="display: none;">
+                        <h3><span class="section-icon">💡</span> Chef's Notes</h3>
+                        <div class="recipe-notes" id="recipeNotes"></div>
+                    </div>
+
+                    <!-- Suggestions -->
+                    <div class="recipe-section" id="suggestionsSection" style="display: none;">
+                        <h3><span class="section-icon">🔄</span> Suggestions & Substitutions</h3>
+                        <div class="recipe-suggestions" id="recipeSuggestions"></div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="recipe-actions">
+                        <button class="btn btn-primary" onclick="saveCurrentRecipe()">💾 Save Recipe</button>
+                        <button class="btn btn-secondary" onclick="generateRecipe()">🔄 Generate Another</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Recipe History ────────────────────────────────────────────── -->
+        <div class="history-section glass-card" id="historySection" style="display: none; animation-delay: 0.2s;">
+            <h2>📚 Saved Recipes</h2>
+            <div class="history-list" id="historyList"></div>
+        </div>
+
+        <!-- ── Footer ────────────────────────────────────────────────────── -->
+        <footer class="app-footer">
+            <p>Powered by <strong>Gemini AI</strong> · Built with <strong>FastAPI</strong> · <a href="/docs" target="_blank">API Docs ↗</a></p>
+        </footer>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>
