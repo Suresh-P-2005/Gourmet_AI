@@ -13,7 +13,7 @@ class Settings(BaseSettings):
 
     # ── Gemini AI ──────────────────────────────────────────────
     GEMINI_API_KEY: str = "your_gemini_api_key_here"
-    GEMINI_MODEL: str = "gemini-2.0-flash"
+    GEMINI_MODEL: str = "gemini-3.8-flash"
 
     # ── Application ────────────────────────────────────────────
     APP_TITLE: str = "Gourmet AI Recipe Generator"
