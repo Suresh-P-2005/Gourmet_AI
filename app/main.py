@@ -113,6 +113,14 @@ async def serve_css():
         media_type="text/css",
     )
 
+@app.get("/preview.png", include_in_schema=False)
+async def serve_preview():
+    """Serve the Open Graph preview image."""
+    return FileResponse(
+        str(FRONTEND_DIR / "preview.png"),
+        media_type="image/png",
+    )
+
 
 @app.get("/", include_in_schema=False)
 async def serve_frontend():
