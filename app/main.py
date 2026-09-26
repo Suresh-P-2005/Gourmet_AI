@@ -17,11 +17,11 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.core.config import get_settings
-from app.database import init_db
+from app.database import init_db, close_db
 
 # ── Import route modules ──────────────────────────────────────────────────────
 from app.api.routes import health, recipe, vision
@@ -49,15 +49,17 @@ async def lifespan(app: FastAPI):
     logger.info(f"📦 Gemini model: {settings.GEMINI_MODEL}")
     logger.info(f"🔑 API Key configured: {settings.GEMINI_API_KEY != 'your_gemini_api_key_here'}")
 
-    # Initialize database
+    # Initialize database pool
     await init_db()
-    logger.info("✅ Database initialized")
+    logger.info("✅ Database pool initialized")
 
     # Ensure static directory exists
     STATIC_DIR.mkdir(exist_ok=True)
 
     yield
 
+    # Close database pool on shutdown
+    await close_db()
     logger.info("👋 Shutting down Gourmet AI")
 
 
@@ -75,6 +77,23 @@ app = FastAPI(
     redoc_url="/redoc",
     lifespan=lifespan,
 )
+
+# ── Exception Handlers ─────────────────────────────────────────────────────────
+@app.exception_handler(ValueError)
+async def value_error_handler(request: Request, exc: ValueError):
+    logger.error(f"ValueError: {exc}")
+    return JSONResponse(
+        status_code=400,
+        content={"detail": str(exc)},
+    )
+
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled Exception: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "An unexpected internal server error occurred."},
+    )
 
 # ── CORS Middleware ────────────────────────────────────────────────────────────
 app.add_middleware(

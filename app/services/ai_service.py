@@ -99,8 +99,8 @@ async def generate_recipe(
         try:
             logger.info(f"Recipe generation attempt {attempt}/{max_retries}")
 
-            # Generate content (run sync call in executor to keep async)
-            response = await asyncio.to_thread(model.generate_content, prompt)
+            # Generate content natively asynchronously
+            response = await model.generate_content_async(prompt)
             response_text = response.text.strip()
 
             # Parse JSON from response

@@ -8,18 +8,18 @@
 
 /* ── CSS Custom Properties (Light Theme) ──────────────────────────────────── */
 :root {
-    /* Primary palette */
-    --primary-h: 4;
-    --primary-s: 100%;
-    --primary-l: 68%;
+    /* Primary palette - Vibrant Purple */
+    --primary-h: 270;
+    --primary-s: 85%;
+    --primary-l: 65%;
     --primary: hsl(var(--primary-h), var(--primary-s), var(--primary-l));
-    --primary-dark: hsl(var(--primary-h), var(--primary-s), 58%);
-    --primary-light: hsl(var(--primary-h), var(--primary-s), 92%);
+    --primary-dark: hsl(var(--primary-h), var(--primary-s), 55%);
+    --primary-light: hsl(var(--primary-h), var(--primary-s), 94%);
 
-    /* Secondary palette */
-    --secondary: hsl(174, 56%, 60%);
-    --secondary-dark: hsl(174, 56%, 45%);
-    --secondary-light: hsl(174, 56%, 90%);
+    /* Secondary palette - Saffron Orange */
+    --secondary: hsl(35, 95%, 55%);
+    --secondary-dark: hsl(35, 95%, 45%);
+    --secondary-light: hsl(35, 95%, 90%);
 
     /* Accent */
     --accent: hsl(48, 100%, 71%);
@@ -32,9 +32,9 @@
     --bg-card-solid: hsl(0, 0%, 100%);
     --bg-modal: rgba(0, 0, 0, 0.6);
 
-    --text-primary: hsl(220, 25%, 15%);
-    --text-secondary: hsl(220, 10%, 45%);
-    --text-muted: hsl(220, 10%, 60%);
+    --text-primary: hsl(220, 30%, 8%); /* Near black for maximum contrast */
+    --text-secondary: hsl(220, 20%, 25%); /* Very dark gray */
+    --text-muted: hsl(220, 15%, 40%); /* Clear, visible gray */
     --text-on-primary: #ffffff;
 
     --border-color: hsl(220, 15%, 90%);
@@ -47,10 +47,10 @@
     --glass-blur: 16px;
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(4, 100%, 68%) 0%, hsl(174, 56%, 60%) 100%);
-    --gradient-warm: linear-gradient(135deg, hsl(4, 100%, 68%) 0%, hsl(35, 100%, 65%) 100%);
-    --gradient-cool: linear-gradient(135deg, hsl(210, 100%, 65%) 0%, hsl(174, 56%, 60%) 100%);
-    --gradient-bg: linear-gradient(135deg, hsl(220, 20%, 97%) 0%, hsl(200, 25%, 95%) 50%, hsl(174, 20%, 95%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(270, 85%, 65%) 0%, hsl(35, 95%, 55%) 100%);
+    --gradient-warm: linear-gradient(135deg, hsl(270, 85%, 65%) 0%, hsl(320, 85%, 60%) 100%);
+    --gradient-cool: linear-gradient(135deg, hsl(210, 100%, 65%) 0%, hsl(270, 85%, 65%) 100%);
+    --gradient-bg: linear-gradient(135deg, hsl(220, 20%, 97%) 0%, hsl(260, 25%, 96%) 50%, hsl(35, 20%, 95%) 100%);
 
     /* Shadows */
     --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
@@ -87,9 +87,9 @@
     --bg-card-solid: hsl(225, 22%, 16%);
     --bg-modal: rgba(0, 0, 0, 0.75);
 
-    --text-primary: hsl(220, 15%, 92%);
-    --text-secondary: hsl(220, 10%, 65%);
-    --text-muted: hsl(220, 10%, 50%);
+    --text-primary: hsl(220, 20%, 96%);
+    --text-secondary: hsl(220, 15%, 85%); /* Improved visibility */
+    --text-muted: hsl(220, 15%, 65%);
 
     --border-color: hsl(225, 15%, 22%);
 
@@ -207,14 +207,16 @@ body {
 
 .app-header h1 {
     font-family: 'Playfair Display', serif;
-    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-size: clamp(2.5rem, 6vw, 3.8rem);
     font-weight: 800;
     background: var(--gradient-primary);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.15));
     line-height: 1.2;
     margin-bottom: 0.5rem;
+    letter-spacing: -0.02em;
 }
 
 .app-header .subtitle {

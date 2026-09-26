@@ -8,7 +8,7 @@ A modern, production-ready AI-powered recipe generation system built with FastAP
 - **📷 Camera Ingredient Detection**: Automatically detect ingredients from camera photos using Gemini Vision API.
 - **🎤 Voice Input**: Hands-free ingredient entry using the Web Speech API.
 - **🎨 Premium UI**: Glassmorphism design, dark mode, smooth animations, and responsive layout.
-- **💾 Recipe History**: Save and manage your favorite AI-generated recipes with local SQLite persistence.
+- **💾 Recipe History**: Save and manage your favorite AI-generated recipes with PostgreSQL persistence.
 - **⚡ Async FastAPI Backend**: High-performance asynchronous backend with Pydantic validation.
 
 ## Prerequisites
@@ -47,8 +47,10 @@ A modern, production-ready AI-powered recipe generation system built with FastAP
     GEMINI_MODEL=gemini-2.0-flash
     DEBUG=true
     CORS_ORIGINS=*
-    DATABASE_URL=sqlite:///./recipes.db
+    DATABASE_URL=postgresql://user:password@localhost:5432/recipes
     ```
+
+    > **Render Deployment Note**: When deploying on Render, you must use the **Internal Database URL** if your FastAPI service and PostgreSQL instance are in the same Render environment. If they are in different environments or you are connecting locally, use the **External Database URL**. Our application is automatically configured to handle Render's SSL requirements for external connections!
 
 ## Running the Application
 
@@ -67,9 +69,11 @@ uvicorn app.main:app --reload
 ```
 receipe/
 │
+├── alembic/                 # Alembic migrations folder
+├── alembic.ini              # Alembic config file
 ├── app/
 │   ├── main.py                  # FastAPI entry point
-│   ├── database.py              # SQLite setup with aiosqlite
+│   ├── database.py              # PostgreSQL pool & setup with asyncpg
 │   │
 │   ├── core/
 │   │   ├── config.py            # Pydantic Settings (loads .env)
@@ -83,7 +87,7 @@ receipe/
 │   ├── services/
 │   │   ├── ai_service.py        # Gemini recipe text generation
 │   │   ├── vision_service.py    # Gemini Vision processing
-│   │   └── recipe_db_service.py # SQLite CRUD ops
+│   │   └── recipe_db_service.py # PostgreSQL CRUD ops
 │   │
 │   ├── models/                  # Request/Response Pydantic schemas
 │   └── utils/                   # JSON parsing & helpers
@@ -104,7 +108,8 @@ receipe/
 - [FastAPI](https://fastapi.tiangolo.com/) - Web framework
 - [Google Generative AI SDK](https://github.com/google/generative-ai-python) - LLM integration
 - [Pydantic](https://docs.pydantic.dev/) - Data validation
-- [aiosqlite](https://github.com/omnilib/aiosqlite) - Async SQLite
+- [asyncpg](https://magicstack.github.io/asyncpg/current/) - High-performance async PostgreSQL driver
+- [Alembic](https://alembic.sqlalchemy.org/) - Database migrations
 
 **Frontend:**
 - HTML5 / CSS3 / Vanilla JavaScript
