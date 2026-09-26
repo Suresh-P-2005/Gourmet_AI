@@ -1,5 +1,5 @@
 """
-Recipe Database Service — CRUD operations for saved recipes using SQLite.
+Recipe Database Service — CRUD operations for saved recipes using PostgreSQL.
 """
 
 import json
@@ -23,24 +23,21 @@ async def save_recipe(recipe_data: dict) -> int:
     """
     db = await get_db()
     try:
-        cursor = await db.execute(
+        recipe_id = await db.fetchval(
             """
             INSERT INTO recipes (title, cuisine, dietary, ingredients, instructions, notes, nutrition, suggestions)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            RETURNING id
             """,
-            (
-                recipe_data.get("title", "Untitled Recipe"),
-                recipe_data.get("cuisine", ""),
-                recipe_data.get("dietary", ""),
-                json.dumps(recipe_data.get("ingredients", [])),
-                json.dumps(recipe_data.get("instructions", [])),
-                recipe_data.get("notes", ""),
-                json.dumps(recipe_data.get("nutrition", {})),
-                recipe_data.get("suggestions", ""),
-            ),
+            recipe_data.get("title", "Untitled Recipe"),
+            recipe_data.get("cuisine", ""),
+            recipe_data.get("dietary", ""),
+            json.dumps(recipe_data.get("ingredients", [])),
+            json.dumps(recipe_data.get("instructions", [])),
+            recipe_data.get("notes", ""),
+            json.dumps(recipe_data.get("nutrition", {})),
+            recipe_data.get("suggestions", ""),
         )
-        await db.commit()
-        recipe_id = cursor.lastrowid
         logger.info(f"Recipe saved with ID: {recipe_id}")
         return recipe_id
     finally:
@@ -61,30 +58,27 @@ async def get_recipes(limit: int = 20, offset: int = 0) -> tuple[list[dict], int
     db = await get_db()
     try:
         # Get total count
-        cursor = await db.execute("SELECT COUNT(*) FROM recipes")
-        row = await cursor.fetchone()
-        total = row[0]
+        total = await db.fetchval("SELECT COUNT(*) FROM recipes")
 
         # Get paginated recipes
-        cursor = await db.execute(
-            "SELECT * FROM recipes ORDER BY created_at DESC LIMIT ? OFFSET ?",
-            (limit, offset),
+        rows = await db.fetch(
+            "SELECT * FROM recipes ORDER BY created_at DESC LIMIT $1 OFFSET $2",
+            limit, offset,
         )
-        rows = await cursor.fetchall()
 
         recipes = []
         for row in rows:
             recipes.append({
-                "id": row[0],
-                "title": row[1],
-                "cuisine": row[2] or "",
-                "dietary": row[3] or "",
-                "ingredients": json.loads(row[4]) if row[4] else [],
-                "instructions": json.loads(row[5]) if row[5] else [],
-                "notes": row[6] or "",
-                "nutrition": json.loads(row[7]) if row[7] else {},
-                "suggestions": row[8] or "",
-                "created_at": str(row[9]) if row[9] else "",
+                "id": row["id"],
+                "title": row["title"],
+                "cuisine": row["cuisine"] or "",
+                "dietary": row["dietary"] or "",
+                "ingredients": json.loads(row["ingredients"]) if row["ingredients"] else [],
+                "instructions": json.loads(row["instructions"]) if row["instructions"] else [],
+                "notes": row["notes"] or "",
+                "nutrition": json.loads(row["nutrition"]) if row["nutrition"] else {},
+                "suggestions": row["suggestions"] or "",
+                "created_at": str(row["created_at"]) if row["created_at"] else "",
             })
 
         return recipes, total
@@ -104,9 +98,8 @@ async def delete_recipe(recipe_id: int) -> bool:
     """
     db = await get_db()
     try:
-        cursor = await db.execute("DELETE FROM recipes WHERE id = ?", (recipe_id,))
-        await db.commit()
-        deleted = cursor.rowcount > 0
+        result = await db.execute("DELETE FROM recipes WHERE id = $1", recipe_id)
+        deleted = result.startswith("DELETE ") and int(result.split()[1]) > 0
         if deleted:
             logger.info(f"Recipe {recipe_id} deleted")
         return deleted

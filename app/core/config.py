@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str = "*"
 
     # ── Database ───────────────────────────────────────────────
-    DATABASE_URL: str = "sqlite:///./recipes.db"
+    DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/recipes"
 
     # ── Rate limiting ──────────────────────────────────────────
     RATE_LIMIT_PER_MINUTE: int = 30

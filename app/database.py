@@ -1,28 +1,28 @@
 """
-Async SQLite database setup using aiosqlite.
+Async PostgreSQL database setup using asyncpg.
 Creates the recipes table on startup.
 """
 
-import aiosqlite
-import os
-
-DATABASE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "recipes.db")
+import asyncpg
+from app.core.config import get_settings
 
 
-async def get_db() -> aiosqlite.Connection:
+async def get_db() -> asyncpg.Connection:
     """Get an async database connection."""
-    db = await aiosqlite.connect(DATABASE_PATH)
-    db.row_factory = aiosqlite.Row
-    return db
+    settings = get_settings()
+    # asyncpg can accept the URL directly
+    conn = await asyncpg.connect(settings.DATABASE_URL)
+    return conn
 
 
 async def init_db() -> None:
     """Initialize the database and create tables if they don't exist."""
-    db = await aiosqlite.connect(DATABASE_PATH)
+    settings = get_settings()
+    conn = await asyncpg.connect(settings.DATABASE_URL)
     try:
-        await db.execute("""
+        await conn.execute("""
             CREATE TABLE IF NOT EXISTS recipes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 title TEXT NOT NULL,
                 cuisine TEXT DEFAULT '',
                 dietary TEXT DEFAULT '',
@@ -34,6 +34,5 @@ async def init_db() -> None:
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        await db.commit()
     finally:
-        await db.close()
+        await conn.close()
