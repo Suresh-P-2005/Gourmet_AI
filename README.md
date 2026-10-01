@@ -4,17 +4,19 @@ A modern, production-ready AI-powered recipe generation system built with FastAP
 
 ## Features
 
-- **🧠 Smart Recipe Generation**: Powered by Google's Gemini 2.0 Flash AI.
-- **📷 Camera Ingredient Detection**: Automatically detect ingredients from camera photos using Gemini Vision API.
+- **🧠 Smart Recipe Generation**: Powered by Google's Gemini AI with an automatic multi-provider fallback to Groq (`openai/gpt-oss-20b`) for high resilience.
+- **📷 Camera Ingredient Detection**: Automatically detect ingredients from camera photos using Gemini Vision API, gracefully falling back to Groq (`qwen/qwen3.8-27b`) when quotas are exhausted.
 - **🎤 Voice Input**: Hands-free ingredient entry using the Web Speech API.
 - **🎨 Premium UI**: Glassmorphism design, dark mode, smooth animations, and responsive layout.
-- **💾 Recipe History**: Save and manage your favorite AI-generated recipes with PostgreSQL persistence.
-- **⚡ Async FastAPI Backend**: High-performance asynchronous backend with Pydantic validation.
+- **💾 Recipe History**: Save and manage your favorite AI-generated recipes with PostgreSQL persistence and atomic database transactions.
+- **⚡ Async FastAPI Backend**: High-performance asynchronous backend with Pydantic validation and rate-limit handling (Exponential Backoff).
+- **✅ Automated Testing**: Comprehensive asynchronous unit testing suite using `pytest` and `httpx`.
 
 ## Prerequisites
 
 - Python 3.10+
 - A Google Gemini API Key
+- A Groq API Key (for failover models)
 
 ## Setup & Installation
 
@@ -41,10 +43,11 @@ A modern, production-ready AI-powered recipe generation system built with FastAP
 
 4. **Configure Environment Variables**:
     - Open the `.env` file in the root directory.
-    - Replace `your_gemini_api_key_here` with your actual Gemini API key.
+    - Replace the placeholder API keys with your actual keys.
     ```env
-    GEMINI_API_KEY=your_actual_api_key
-    GEMINI_MODEL=gemini-2.0-flash
+    GEMINI_API_KEY=your_gemini_api_key
+    GEMINI_MODEL=gemini-flash-latest
+    GROQ_API_KEY=your_groq_api_key
     DEBUG=true
     CORS_ORIGINS=*
     DATABASE_URL=postgresql://user:password@localhost:5432/recipes
@@ -63,6 +66,13 @@ uvicorn app.main:app --reload
 - **Frontend App**: [http://localhost:8000/](http://localhost:8000/)
 - **API Documentation (Swagger)**: [http://localhost:8000/docs](http://localhost:8000/docs)
 - **API Documentation (ReDoc)**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
+
+### Running Tests
+
+Execute the asynchronous test suite locally:
+```bash
+pytest tests/ -v
+```
 
 ## Project Architecture
 
@@ -95,7 +105,10 @@ receipe/
 ├── frontend/
 │   ├── index.html               # Main UI
 │   ├── style.css                # Glassmorphism & Dark Mode CSS
-│   └── app.js                   # Client-side logic & camera capture
+│   └── app.js                   # Client-side logic, camera, throttle/debounce
+│
+├── tests/
+│   └── test_recipe_api.py       # Asynchronous pytest cases
 │
 ├── static/                      # Static assets folder
 ├── .env                         # Secrets
@@ -107,9 +120,11 @@ receipe/
 **Backend:**
 - [FastAPI](https://fastapi.tiangolo.com/) - Web framework
 - [Google Generative AI SDK](https://github.com/google/generative-ai-python) - LLM integration
+- [Groq SDK](https://github.com/groq/groq-python) - Ultra-fast LLM fallback APIs
 - [Pydantic](https://docs.pydantic.dev/) - Data validation
 - [asyncpg](https://magicstack.github.io/asyncpg/current/) - High-performance async PostgreSQL driver
 - [Alembic](https://alembic.sqlalchemy.org/) - Database migrations
+- [Pytest](https://docs.pytest.org/) & [HTTPX](https://www.python-httpx.org/) - Async Testing
 
 **Frontend:**
 - HTML5 / CSS3 / Vanilla JavaScript
