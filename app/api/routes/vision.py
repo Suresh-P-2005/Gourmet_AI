@@ -42,7 +42,10 @@ async def detect_ingredients(request: Request, body: VisionDetectRequest):
 
     except ValueError as e:
         logger.error(f"Vision detection error: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        error_msg = str(e)
+        if "429" in error_msg or "Quota exceeded" in error_msg:
+            raise HTTPException(status_code=429, detail="API Quota Exceeded. Retrying...")
+        raise HTTPException(status_code=400, detail=error_msg)
     except Exception as e:
         logger.error(f"Unexpected vision error: {e}")
         raise HTTPException(

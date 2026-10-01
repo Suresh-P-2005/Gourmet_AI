@@ -8,6 +8,8 @@ import logging
 from typing import Optional
 
 import google.generativeai as genai
+from google.api_core.exceptions import ResourceExhausted
+from groq import AsyncGroq
 from PIL import Image
 import io
 
@@ -82,17 +84,45 @@ async def detect_ingredients(
         try:
             logger.info(f"Ingredient detection attempt {attempt}/{max_retries}")
 
-            # Build the image part for Gemini
-            image_part = {
-                "mime_type": mime_type,
-                "data": image_bytes,
-            }
+            try:
+                # Build the image part for Gemini
+                image_part = {
+                    "mime_type": mime_type,
+                    "data": image_bytes,
+                }
 
-            # Send image + prompt to Gemini Vision
-            response = await asyncio.to_thread(
-                model.generate_content, [DETECTION_PROMPT, image_part]
-            )
-            response_text = response.text.strip()
+                # Send image + prompt to Gemini Vision
+                response = await asyncio.to_thread(
+                    model.generate_content, [DETECTION_PROMPT, image_part]
+                )
+                response_text = response.text.strip()
+            except ResourceExhausted:
+                logger.warning("Gemini Vision API ResourceExhausted. Falling back to Groq Vision...")
+                groq_client = AsyncGroq(api_key=settings.GROQ_API_KEY, timeout=15.0)
+                
+                data_uri = image_base64
+                if not data_uri.startswith("data:"):
+                    data_uri = f"data:{mime_type};base64,{image_base64}"
+                
+                chat_completion = await groq_client.chat.completions.create(
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "text", "text": DETECTION_PROMPT},
+                                {
+                                    "type": "image_url",
+                                    "image_url": {
+                                        "url": data_uri,
+                                    },
+                                },
+                            ],
+                        }
+                    ],
+                    model="qwen/qwen3.8-27b",
+                    response_format={"type": "json_object"},
+                )
+                response_text = chat_completion.choices[0].message.content.strip()
 
             # Parse JSON from response
             result = extract_json(response_text)
@@ -117,7 +147,9 @@ async def detect_ingredients(
             logger.warning(f"Detection attempt {attempt} failed: {e}")
 
             if attempt < max_retries:
-                await asyncio.sleep(1)
+                # Exponential backoff on retry (2s, 4s)
+                wait_time = 2 ** attempt
+                await asyncio.sleep(wait_time)
 
     raise ValueError(
         f"Failed to detect ingredients after {max_retries} attempts. "

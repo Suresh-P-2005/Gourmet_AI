@@ -23,23 +23,24 @@ async def save_recipe(recipe_data: dict) -> int:
     """
     db = await get_db()
     try:
-        recipe_id = await db.fetchval(
-            """
-            INSERT INTO recipes (title, cuisine, dietary, ingredients, instructions, notes, nutrition, suggestions)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            RETURNING id
-            """,
-            recipe_data.get("title", "Untitled Recipe"),
-            recipe_data.get("cuisine", ""),
-            recipe_data.get("dietary", ""),
-            json.dumps(recipe_data.get("ingredients", [])),
-            json.dumps(recipe_data.get("instructions", [])),
-            recipe_data.get("notes", ""),
-            json.dumps(recipe_data.get("nutrition", {})),
-            recipe_data.get("suggestions", ""),
-        )
-        logger.info(f"Recipe saved with ID: {recipe_id}")
-        return recipe_id
+        async with db._conn.transaction():
+            recipe_id = await db.fetchval(
+                """
+                INSERT INTO recipes (title, cuisine, dietary, ingredients, instructions, notes, nutrition, suggestions)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                RETURNING id
+                """,
+                recipe_data.get("title", "Untitled Recipe"),
+                recipe_data.get("cuisine", ""),
+                recipe_data.get("dietary", ""),
+                json.dumps(recipe_data.get("ingredients", [])),
+                json.dumps(recipe_data.get("instructions", [])),
+                recipe_data.get("notes", ""),
+                json.dumps(recipe_data.get("nutrition", {})),
+                recipe_data.get("suggestions", ""),
+            )
+            logger.info(f"Recipe saved with ID: {recipe_id}")
+            return recipe_id
     finally:
         await db.close()
 
@@ -98,10 +99,11 @@ async def delete_recipe(recipe_id: int) -> bool:
     """
     db = await get_db()
     try:
-        result = await db.execute("DELETE FROM recipes WHERE id = $1", recipe_id)
-        deleted = result.startswith("DELETE ") and int(result.split()[1]) > 0
-        if deleted:
-            logger.info(f"Recipe {recipe_id} deleted")
-        return deleted
+        async with db._conn.transaction():
+            result = await db.execute("DELETE FROM recipes WHERE id = $1", recipe_id)
+            deleted = result.startswith("DELETE ") and int(result.split()[1]) > 0
+            if deleted:
+                logger.info(f"Recipe {recipe_id} deleted")
+            return deleted
     finally:
         await db.close()

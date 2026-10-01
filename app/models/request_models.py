@@ -2,7 +2,7 @@
 Pydantic request models — strict validation for all API inputs.
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, constr
 from typing import Optional
 
 
@@ -12,6 +12,7 @@ class RecipeRequest(BaseModel):
         ...,
         min_length=2,
         max_length=2000,
+        strip_whitespace=True,
         description="Comma-separated list of ingredients",
         examples=["chicken breast, bell peppers, garlic, olive oil"],
     )
@@ -40,11 +41,11 @@ class VisionDetectRequest(BaseModel):
 
 class SaveRecipeRequest(BaseModel):
     """Request body for saving a generated recipe."""
-    title: str = Field(..., min_length=1, max_length=500)
+    title: str = Field(..., min_length=1, max_length=500, strip_whitespace=True)
     cuisine: Optional[str] = ""
     dietary: Optional[str] = ""
-    ingredients: list[str] = Field(..., min_length=1)
-    instructions: list[str] = Field(..., min_length=1)
+    ingredients: list[constr(strip_whitespace=True, min_length=1)] = Field(..., min_length=1)
+    instructions: list[constr(strip_whitespace=True, min_length=1)] = Field(..., min_length=1)
     notes: Optional[str] = ""
     nutrition: Optional[dict] = {}
     suggestions: Optional[str] = ""

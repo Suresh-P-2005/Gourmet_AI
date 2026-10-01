@@ -103,7 +103,10 @@ async def generate_recipe(
 
             try:
                 # Generate content natively asynchronously
-                response = await model.generate_content_async(prompt)
+                response = await model.generate_content_async(
+                    prompt,
+                    request_options={"timeout": 15.0}
+                )
                 response_text = response.text.strip()
 
                 # Extract Gemini Token Usage
@@ -120,7 +123,7 @@ async def generate_recipe(
 
             except ResourceExhausted:
                 logger.warning("Gemini API ResourceExhausted. Falling back to Groq...")
-                groq_client = AsyncGroq(api_key=settings.GROQ_API_KEY)
+                groq_client = AsyncGroq(api_key=settings.GROQ_API_KEY, timeout=15.0)
                 chat_completion = await groq_client.chat.completions.create(
                     messages=[
                         {

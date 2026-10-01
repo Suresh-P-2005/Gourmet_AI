@@ -441,6 +441,8 @@ function stopVoiceRecording() {
 //  CAMERA INGREDIENT DETECTION
 // ══════════════════════════════════════════════════════════════════════════════
 
+let isDetecting = false;
+
 function initCamera() {
     $('#cameraStartBtn').addEventListener('click', startCamera);
     $('#cameraCaptureBtn').addEventListener('click', captureAndDetect);
@@ -485,11 +487,16 @@ function stopCamera() {
 }
 
 async function captureAndDetect() {
+    if (isDetecting) return;
+    
     const video = $('#cameraVideo');
     if (!video.srcObject) {
         showToast('Camera is not active.', 'error');
         return;
     }
+
+    isDetecting = true;
+    $('#cameraCaptureBtn').disabled = true;
 
     // Capture frame to canvas
     const canvas = document.createElement('canvas');
@@ -503,16 +510,29 @@ async function captureAndDetect() {
 
     // Show loading
     showToast('Analyzing image for ingredients...', 'info');
-    $('#cameraCaptureBtn').disabled = true;
 
     try {
-        const response = await fetch(`${API_BASE}/api/vision/detect`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: imageData }),
-        });
+        let response;
+        let data;
+        let maxRetries = 3;
 
-        const data = await response.json();
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            response = await fetch(`${API_BASE}/api/vision/detect`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: imageData }),
+            });
+
+            data = await response.json();
+
+            if (response.status === 429 && attempt < maxRetries) {
+                const waitTime = Math.pow(2, attempt) * 1000; // 2s, 4s backoff
+                showToast(`Quota exceeded. Retrying in ${waitTime / 1000}s...`, 'info', waitTime);
+                await new Promise(resolve => setTimeout(resolve, waitTime));
+                continue;
+            }
+            break;
+        }
 
         if (!response.ok) {
             throw new Error(data.detail || 'Detection failed');
@@ -541,6 +561,7 @@ async function captureAndDetect() {
         showToast(err.message || 'Failed to detect ingredients.', 'error');
     } finally {
         $('#cameraCaptureBtn').disabled = false;
+        isDetecting = false;
     }
 }
 
