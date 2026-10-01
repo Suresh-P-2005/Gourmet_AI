@@ -5,12 +5,14 @@ A modern, production-ready AI-powered recipe generation system built with FastAP
 ## Features
 
 - **🧠 Smart Recipe Generation**: Powered by Google's Gemini AI with an automatic multi-provider fallback to Groq (`openai/gpt-oss-20b`) for high resilience.
+- **🔐 Secure Authentication**: JWT-based stateless user sessions with strict `bcrypt` password hashing and a stunning 3D flipping glassmorphism login/signup UI.
+- **🌍 Community Feed**: Explore, search, and bookmark public recipes shared by other Gourmet AI users worldwide.
+- **🔒 Personal Vault**: A private repository to manage, delete, or toggle the public visibility of your saved recipes.
 - **📷 Camera Ingredient Detection**: Automatically detect ingredients from camera photos using Gemini Vision API, gracefully falling back to Groq (`qwen/qwen3.8-27b`) when quotas are exhausted.
 - **🎤 Voice Input**: Hands-free ingredient entry using the Web Speech API.
-- **🎨 Premium UI**: Glassmorphism design, dark mode, smooth animations, and responsive layout.
-- **💾 Recipe History**: Save and manage your favorite AI-generated recipes with PostgreSQL persistence and atomic database transactions.
-- **⚡ Async FastAPI Backend**: High-performance asynchronous backend with Pydantic validation and rate-limit handling (Exponential Backoff).
-- **✅ Automated Testing**: Comprehensive asynchronous unit testing suite using `pytest` and `httpx`.
+- **🎨 Premium UI**: Modern glassmorphism design, dark mode, smooth animations, and responsive layout.
+- **💾 Database**: Fast, atomic data persistence with PostgreSQL and `asyncpg`.
+- **✅ Automated Testing**: Comprehensive asynchronous unit testing suite using `pytest` and `anyio`.
 
 ## Prerequisites
 
@@ -90,14 +92,15 @@ receipe/
 │   │   └── security.py          # Rate limiting
 │   │
 │   ├── api/routes/
-│   │   ├── recipe.py            # Generate & Save Recipe APIs
+│   │   ├── auth.py              # JWT Login/Signup Endpoints
+│   │   ├── recipe.py            # Generate, Vault, Community & Save APIs
 │   │   ├── vision.py            # Camera Detection API
 │   │   └── health.py            # System Health
 │   │
 │   ├── services/
 │   │   ├── ai_service.py        # Gemini recipe text generation
 │   │   ├── vision_service.py    # Gemini Vision processing
-│   │   └── recipe_db_service.py # PostgreSQL CRUD ops
+│   │   └── recipe_db_service.py # PostgreSQL CRUD (Users, Recipes, Bookmarks)
 │   │
 │   ├── models/                  # Request/Response Pydantic schemas
 │   └── utils/                   # JSON parsing & helpers
@@ -124,7 +127,8 @@ receipe/
 - [Pydantic](https://docs.pydantic.dev/) - Data validation
 - [asyncpg](https://magicstack.github.io/asyncpg/current/) - High-performance async PostgreSQL driver
 - [Alembic](https://alembic.sqlalchemy.org/) - Database migrations
-- [Pytest](https://docs.pytest.org/) & [HTTPX](https://www.python-httpx.org/) - Async Testing
+- [bcrypt](https://pypi.org/project/bcrypt/) & [python-jose](https://pypi.org/project/python-jose/) - JWT Auth & Hashing
+- [Pytest](https://docs.pytest.org/) & [AnyIO](https://anyio.readthedocs.io/) - Async Testing
 
 **Frontend:**
 - HTML5 / CSS3 / Vanilla JavaScript
