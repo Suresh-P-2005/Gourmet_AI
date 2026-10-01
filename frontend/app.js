@@ -33,8 +33,19 @@ document.addEventListener('DOMContentLoaded', () => {
     initRecipeForm();
     initVoiceInput();
     initCamera();
-    loadRecipeHistory();
+    checkAuthStatus();
 });
+
+function checkAuthStatus() {
+    if (getToken()) {
+        $('#authView').style.display = 'none';
+        $('#mainApp').style.display = 'block';
+        switchView('generateView');
+    } else {
+        $('#authView').style.display = 'block';
+        $('#mainApp').style.display = 'none';
+    }
+}
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  THEME TOGGLE (Dark / Light Mode)
@@ -275,6 +286,7 @@ async function saveCurrentRecipe() {
         const payload = {
             title: recipe.title,
             cuisine: recipe.cuisine || '',
+            cuisine_type: recipe.cuisine_type || 'Other',
             dietary: recipe.dietary || '',
             ingredients: recipe.ingredients || [],
             instructions: recipe.instructions || [],
@@ -285,14 +297,18 @@ async function saveCurrentRecipe() {
 
         const response = await fetch(`${API_BASE}/api/recipe/save`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                ...getAuthHeaders()
+            },
             body: JSON.stringify(payload),
         });
 
         const data = await response.json();
         if (data.success) {
             showToast('Recipe saved! 📚', 'success');
-            loadRecipeHistory();
+            loadPersonalVault();
+            switchView('vaultView');
         } else {
             throw new Error(data.detail || 'Save failed');
         }
@@ -351,7 +367,10 @@ async function deleteSavedRecipe(id, event) {
     if (!confirm('Delete this recipe?')) return;
 
     try {
-        const response = await fetch(`${API_BASE}/api/recipe/${id}`, { method: 'DELETE' });
+        const response = await fetch(`${API_BASE}/api/recipe/${id}`, { 
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
         const data = await response.json();
         if (data.success) {
             showToast('Recipe deleted.', 'info');
@@ -629,3 +648,204 @@ function escapeHtml(text) {
     div.textContent = text;
     return div.innerHTML;
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  MULTI-USER & DASHBOARDS
+// ══════════════════════════════════════════════════════════════════════════════
+
+function getToken() {
+    return localStorage.getItem('jwt_token');
+}
+
+function getAuthHeaders() {
+    const token = getToken();
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+}
+
+function handleLogout() {
+    localStorage.removeItem('jwt_token');
+    showToast('Logged out successfully', 'info');
+    checkAuthStatus();
+}
+
+function switchView(viewId) {
+    const views = ['generateView', 'communityView', 'vaultView'];
+    views.forEach(v => {
+        const el = $('#' + v);
+        if (el) el.style.display = (v === viewId) ? 'block' : 'none';
+    });
+}
+
+async function handleLogin() {
+    const username = $('#authUsername').value.trim();
+    const password = $('#authPassword').value;
+    if (!username || !password) return showToast('Please enter username and password', 'error');
+
+    try {
+        const formData = new URLSearchParams();
+        formData.append('username', username);
+        formData.append('password', password);
+
+        const res = await fetch(`${API_BASE}/api/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formData
+        });
+        const data = await res.json();
+        if (res.ok) {
+            localStorage.setItem('jwt_token', data.access_token);
+            showToast('Logged in successfully!', 'success');
+            checkAuthStatus();
+        } else {
+            showToast(data.detail || 'Login failed', 'error');
+        }
+    } catch (err) {
+        showToast('Login error', 'error');
+    }
+}
+
+async function handleSignup() {
+    const username = $('#signupUsername').value.trim();
+    const email = $('#signupEmail').value.trim();
+    const password = $('#signupPassword').value;
+    if (!username || !email || !password) return showToast('Please enter username, email and password', 'error');
+
+    try {
+        const res = await fetch(`${API_BASE}/api/auth/signup`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, email, password })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            showToast('Signed up! Please login now.', 'success');
+            toggleAuthFlip();
+        } else {
+            showToast(data.detail || 'Signup failed', 'error');
+        }
+    } catch (err) {
+        showToast('Signup error', 'error');
+    }
+}
+
+function toggleAuthFlip() {
+    const flipper = $('#authFlipper');
+    if (flipper) {
+        flipper.classList.toggle('flipped');
+    }
+}
+
+async function loadCommunityFeed(cuisine = 'All') {
+    const search = $('#searchCommunity')?.value.trim() || '';
+    let url = `${API_BASE}/api/recipe/community?limit=20`;
+    if (cuisine !== 'All') url += `&cuisine=${encodeURIComponent(cuisine)}`;
+    if (search) url += `&search=${encodeURIComponent(search)}`;
+
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+        if (res.ok) {
+            renderRecipeCards(data.recipes, 'communityGrid', false);
+        }
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+async function loadPersonalVault() {
+    if (!getToken()) return checkAuthStatus();
+    try {
+        const res = await fetch(`${API_BASE}/api/recipe/vault`, {
+            headers: getAuthHeaders()
+        });
+        const data = await res.json();
+        if (res.ok) {
+            renderRecipeCards(data.recipes, 'vaultGrid', true);
+        } else if (res.status === 401) {
+            handleLogout();
+        }
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+function renderRecipeCards(recipes, containerId, isVault) {
+    const container = $('#' + containerId);
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (!recipes || recipes.length === 0) {
+        container.innerHTML = '<p>No recipes found.</p>';
+        return;
+    }
+
+    recipes.forEach(r => {
+        const div = document.createElement('div');
+        div.className = 'glass-card';
+        div.style.padding = '15px';
+        div.style.display = 'flex';
+        div.style.flexDirection = 'column';
+        div.style.gap = '10px';
+
+        let actionHtml = isVault ? 
+            `<button class="glass-btn btn btn-secondary" onclick="deleteSavedRecipe(${r.id}, event)">🗑️ Delete</button>
+             <button class="glass-btn btn ${r.is_public ? 'btn-primary' : 'btn-secondary'}" onclick="toggleVisibility(${r.id}, ${!r.is_public})">${r.is_public ? '🌍 Public' : '🔒 Private'}</button>` :
+            `<button class="glass-btn btn btn-primary" onclick="bookmarkRecipe(${r.id})">💾 Save to Vault</button>`;
+
+        const contentDiv = document.createElement('div');
+        contentDiv.style.cssText = "cursor: pointer; flex-grow: 1; display: flex; flex-direction: column; gap: 10px; padding: 5px; border-radius: 8px; transition: background 0.3s ease;";
+        contentDiv.onmouseover = () => contentDiv.style.background = "var(--glass-bg)";
+        contentDiv.onmouseout = () => contentDiv.style.background = "transparent";
+        contentDiv.onclick = () => {
+            displayRecipe(r);
+            switchView('generateView');
+        };
+        contentDiv.innerHTML = `
+            <h3 style="margin:0">${escapeHtml(r.title)}</h3>
+            <span style="font-size: 0.8em; opacity: 0.8;">${escapeHtml(r.cuisine_type || 'Other')}</span>
+            <p style="font-size: 0.9em; margin: 0; flex-grow: 1;">${escapeHtml((r.ingredients || []).slice(0, 3).join(', '))}...</p>
+        `;
+
+        const actionsDiv = document.createElement('div');
+        actionsDiv.style.cssText = "display: flex; gap: 10px; flex-wrap: wrap; margin-top: auto;";
+        actionsDiv.innerHTML = actionHtml;
+
+        div.appendChild(contentDiv);
+        div.appendChild(actionsDiv);
+        container.appendChild(div);
+    });
+}
+
+async function bookmarkRecipe(id) {
+    if (!getToken()) {
+        showToast("Please login first", "error");
+        checkAuthStatus();
+        return;
+    }
+    try {
+        const res = await fetch(`${API_BASE}/api/recipe/${id}/save`, {
+            method: 'POST',
+            headers: getAuthHeaders()
+        });
+        if (res.ok) showToast("Recipe bookmarked to your Vault!", "success");
+        else showToast("Failed to bookmark", "error");
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+async function toggleVisibility(id, makePublic) {
+    try {
+        const res = await fetch(`${API_BASE}/api/recipe/${id}/visibility?is_public=${makePublic}`, {
+            method: 'PUT',
+            headers: getAuthHeaders()
+        });
+        if (res.ok) {
+            showToast(`Recipe is now ${makePublic ? 'public' : 'private'}`, 'success');
+            loadPersonalVault();
+        }
+    } catch (err) {
+        console.error(err);
+    }
+}
+

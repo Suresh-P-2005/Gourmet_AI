@@ -9,3 +9,6 @@ asyncpg==0.29.0
 pillow==10.4.0
 python-multipart==0.0.9
 groq
+passlib[bcrypt]
+python-jose
+pydantic[email]

@@ -20,6 +20,7 @@ class RecipeData(BaseModel):
     """Core recipe data returned by AI generation."""
     title: str
     cuisine: Optional[str] = ""
+    cuisine_type: Optional[str] = "Other"
     dietary: Optional[str] = ""
     ingredients: list[str]
     instructions: list[str]
@@ -58,10 +59,13 @@ class RecipeHistoryItem(BaseModel):
     id: int
     title: str
     cuisine: Optional[str] = ""
+    cuisine_type: Optional[str] = "Other"
     dietary: Optional[str] = ""
     ingredients: list[str]
     instructions: list[str]
     notes: Optional[str] = ""
+    personal_notes: Optional[str] = ""
+    is_public: Optional[bool] = False
     nutrition: Optional[dict] = {}
     suggestions: Optional[str] = ""
     created_at: Optional[str] = ""
@@ -88,3 +92,12 @@ class ErrorResponse(BaseModel):
     error: str
     details: Optional[str] = ""
     solution: Optional[str] = ""
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    email: str

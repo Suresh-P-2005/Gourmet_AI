@@ -3,7 +3,7 @@ Recipe API routes — generation, save, and history endpoints.
 """
 
 import logging
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from app.models.request_models import RecipeRequest, SaveRecipeRequest
 from app.models.response_models import (
     RecipeResponse,
@@ -13,9 +13,11 @@ from app.models.response_models import (
     RecipeHistoryResponse,
     RecipeHistoryItem,
     ErrorResponse,
+    UserResponse
 )
 from app.services import ai_service, recipe_db_service
 from app.core.security import rate_limiter, sanitize_input
+from app.api.routes.auth import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +60,7 @@ async def generate_recipe(request: Request, body: RecipeRequest):
         recipe = RecipeData(
             title=recipe_data.get("title", "Untitled Recipe"),
             cuisine=recipe_data.get("cuisine", cuisine),
+            cuisine_type=recipe_data.get("cuisine_type", "Other"),
             dietary=recipe_data.get("dietary", dietary),
             ingredients=recipe_data.get("ingredients", []),
             instructions=recipe_data.get("instructions", []),
@@ -86,68 +89,65 @@ async def generate_recipe(request: Request, body: RecipeRequest):
         )
 
 
-@router.post(
-    "/save",
-    response_model=SavedRecipeResponse,
-    responses={500: {"model": ErrorResponse}},
-    summary="Save Recipe",
-    description="Save a generated recipe to the database for future reference.",
-)
-async def save_recipe(body: SaveRecipeRequest):
-    """Save a recipe to the database."""
+@router.post("/save", response_model=SavedRecipeResponse)
+async def save_recipe(body: SaveRecipeRequest, current_user: UserResponse = Depends(get_current_user)):
     try:
         recipe_dict = body.model_dump()
-        recipe_id = await recipe_db_service.save_recipe(recipe_dict)
-        return SavedRecipeResponse(
-            success=True,
-            id=recipe_id,
-            message="Recipe saved successfully!",
-        )
+        recipe_id = await recipe_db_service.save_recipe(recipe_dict, current_user.id)
+        return SavedRecipeResponse(success=True, id=recipe_id, message="Recipe saved successfully!")
     except Exception as e:
         logger.error(f"Failed to save recipe: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to save recipe: {e}",
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to save recipe: {e}")
 
-
-@router.get(
-    "/history",
-    response_model=RecipeHistoryResponse,
-    summary="Recipe History",
-    description="Retrieve saved recipes with pagination.",
-)
-async def get_recipe_history(limit: int = 20, offset: int = 0):
-    """Get saved recipe history."""
+@router.get("/vault", response_model=RecipeHistoryResponse)
+async def get_personal_vault(limit: int = 20, offset: int = 0, current_user: UserResponse = Depends(get_current_user)):
     try:
-        recipes, total = await recipe_db_service.get_recipes(limit=limit, offset=offset)
+        recipes, total = await recipe_db_service.get_user_vault_recipes(current_user.id, limit=limit, offset=offset)
         items = [RecipeHistoryItem(**r) for r in recipes]
         return RecipeHistoryResponse(success=True, recipes=items, total=total)
     except Exception as e:
-        logger.error(f"Failed to fetch recipe history: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to fetch recipe history: {e}",
-        )
+        logger.error(f"Failed to fetch vault: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch vault: {e}")
 
-
-@router.delete(
-    "/{recipe_id}",
-    summary="Delete Recipe",
-    description="Delete a saved recipe by its ID.",
-)
-async def delete_recipe(recipe_id: int):
-    """Delete a saved recipe."""
+@router.get("/community", response_model=RecipeHistoryResponse)
+async def get_community_feed(limit: int = 20, offset: int = 0, cuisine: str = None, search: str = None):
     try:
-        deleted = await recipe_db_service.delete_recipe(recipe_id)
+        recipes, total = await recipe_db_service.get_community_recipes(limit, offset, cuisine, search)
+        items = [RecipeHistoryItem(**r) for r in recipes]
+        return RecipeHistoryResponse(success=True, recipes=items, total=total)
+    except Exception as e:
+        logger.error(f"Failed to fetch community feed: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch community feed: {e}")
+
+@router.post("/{recipe_id}/save", response_model=SavedRecipeResponse)
+async def bookmark_community_recipe(recipe_id: int, current_user: UserResponse = Depends(get_current_user)):
+    try:
+        success = await recipe_db_service.bookmark_recipe(recipe_id, current_user.id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Recipe not found or not public.")
+        return SavedRecipeResponse(success=True, id=recipe_id, message="Recipe bookmarked!")
+    except Exception as e:
+        logger.error(f"Failed to bookmark recipe: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to bookmark recipe: {e}")
+
+@router.put("/{recipe_id}/visibility")
+async def toggle_visibility(recipe_id: int, is_public: bool, current_user: UserResponse = Depends(get_current_user)):
+    try:
+        success = await recipe_db_service.toggle_recipe_visibility(recipe_id, current_user.id, is_public)
+        if not success:
+            raise HTTPException(status_code=404, detail="Recipe not found or unauthorized.")
+        return {"success": True, "message": "Visibility updated."}
+    except Exception as e:
+        logger.error(f"Failed to update visibility: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update visibility: {e}")
+
+@router.delete("/{recipe_id}")
+async def delete_recipe(recipe_id: int, current_user: UserResponse = Depends(get_current_user)):
+    try:
+        deleted = await recipe_db_service.delete_recipe(recipe_id, current_user.id)
         if not deleted:
-            raise HTTPException(status_code=404, detail="Recipe not found.")
+            raise HTTPException(status_code=404, detail="Recipe not found or unauthorized.")
         return {"success": True, "message": "Recipe deleted successfully."}
-    except HTTPException:
-        raise
     except Exception as e:
         logger.error(f"Failed to delete recipe: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to delete recipe: {e}",
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to delete recipe: {e}")

@@ -24,7 +24,7 @@ from app.core.config import get_settings
 from app.database import init_db, close_db
 
 # ── Import route modules ──────────────────────────────────────────────────────
-from app.api.routes import health, recipe, vision
+from app.api.routes import health, recipe, vision, auth
 
 # ── Logging ────────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -110,6 +110,7 @@ if STATIC_DIR.exists():
 
 # ── Register API Routes ───────────────────────────────────────────────────────
 app.include_router(health.router)
+app.include_router(auth.router)
 app.include_router(recipe.router)
 app.include_router(vision.router)
 

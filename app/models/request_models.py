@@ -2,7 +2,7 @@
 Pydantic request models — strict validation for all API inputs.
 """
 
-from pydantic import BaseModel, Field, constr
+from pydantic import BaseModel, Field, constr, EmailStr
 from typing import Optional
 
 
@@ -43,9 +43,21 @@ class SaveRecipeRequest(BaseModel):
     """Request body for saving a generated recipe."""
     title: str = Field(..., min_length=1, max_length=500, strip_whitespace=True)
     cuisine: Optional[str] = ""
+    cuisine_type: Optional[str] = "Other"
     dietary: Optional[str] = ""
     ingredients: list[constr(strip_whitespace=True, min_length=1)] = Field(..., min_length=1)
     instructions: list[constr(strip_whitespace=True, min_length=1)] = Field(..., min_length=1)
     notes: Optional[str] = ""
+    personal_notes: Optional[str] = ""
+    is_public: Optional[bool] = False
     nutrition: Optional[dict] = {}
     suggestions: Optional[str] = ""
+
+class UserCreateRequest(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50, strip_whitespace=True)
+    email: EmailStr
+    password: str = Field(..., min_length=6, max_length=128)
+
+class UserLoginRequest(BaseModel):
+    username: str
+    password: str

@@ -25,6 +25,7 @@ Generate a detailed, creative recipe using these ingredients: {ingredients}.
 You MUST respond with ONLY a valid JSON object (no markdown, no extra text) in this exact structure:
 {{
     "title": "Creative and appetizing recipe name",
+    "cuisine_type": "One of: [North Indian, South Indian, Western, Asian, Mediterranean, Other]",
     "cuisine": "{cuisine}",
     "dietary": "{dietary}",
     "prep_time": "estimated prep time (e.g. 15 minutes)",

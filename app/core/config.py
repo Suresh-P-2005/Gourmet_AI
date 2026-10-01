@@ -31,6 +31,10 @@ class Settings(BaseSettings):
 
     # ── Rate limiting ──────────────────────────────────────────
     RATE_LIMIT_PER_MINUTE: int = 30
+    
+    # ── Auth & JWT ─────────────────────────────────────────────
+    SECRET_KEY: str = "your-super-secret-key-for-development"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7 # 1 week
 
     model_config = SettingsConfigDict(
         env_file=".env",
