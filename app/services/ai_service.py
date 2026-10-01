@@ -8,6 +8,8 @@ import logging
 from typing import Optional
 
 import google.generativeai as genai
+from google.api_core.exceptions import ResourceExhausted
+from groq import AsyncGroq
 
 from app.core.config import get_settings
 from app.utils.parser import extract_json, validate_recipe_structure
@@ -99,9 +101,49 @@ async def generate_recipe(
         try:
             logger.info(f"Recipe generation attempt {attempt}/{max_retries}")
 
-            # Generate content natively asynchronously
-            response = await model.generate_content_async(prompt)
-            response_text = response.text.strip()
+            try:
+                # Generate content natively asynchronously
+                response = await model.generate_content_async(prompt)
+                response_text = response.text.strip()
+
+                # Extract Gemini Token Usage
+                token_usage = {"input": 0, "output": 0, "total": 0, "provider": "gemini"}
+                if hasattr(response, 'usage_metadata'):
+                    meta = response.usage_metadata
+                    token_usage = {
+                        "input": getattr(meta, "prompt_token_count", 0),
+                        "output": getattr(meta, "candidates_token_count", 0),
+                        "total": getattr(meta, "total_token_count", 0),
+                        "provider": "gemini"
+                    }
+                logger.info(f"[Gemini Token Usage] Input: {token_usage['input']}, Output: {token_usage['output']}, Total: {token_usage['total']}")
+
+            except ResourceExhausted:
+                logger.warning("Gemini API ResourceExhausted. Falling back to Groq...")
+                groq_client = AsyncGroq(api_key=settings.GROQ_API_KEY)
+                chat_completion = await groq_client.chat.completions.create(
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": prompt,
+                        }
+                    ],
+                    model="openai/gpt-oss-20b",
+                    response_format={"type": "json_object"},
+                )
+                response_text = chat_completion.choices[0].message.content.strip()
+
+                # Extract Groq Token Usage
+                token_usage = {"input": 0, "output": 0, "total": 0, "provider": "groq"}
+                if hasattr(chat_completion, 'usage') and chat_completion.usage:
+                    usage = chat_completion.usage
+                    token_usage = {
+                        "input": getattr(usage, "prompt_tokens", 0),
+                        "output": getattr(usage, "completion_tokens", 0),
+                        "total": getattr(usage, "total_tokens", 0),
+                        "provider": "groq"
+                    }
+                logger.info(f"[Groq Token Usage] Input: {token_usage['input']}, Output: {token_usage['output']}, Total: {token_usage['total']}")
 
             # Parse JSON from response
             recipe_data = extract_json(response_text)
@@ -112,6 +154,7 @@ async def generate_recipe(
             if not validate_recipe_structure(recipe_data):
                 raise ValueError(f"Missing required fields in recipe: {list(recipe_data.keys())}")
 
+            recipe_data["token_usage"] = token_usage
             logger.info(f"Recipe generated successfully: {recipe_data.get('title', 'Unknown')}")
             return recipe_data
 

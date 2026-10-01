@@ -67,6 +67,7 @@ async def generate_recipe(request: Request, body: RecipeRequest):
             prep_time=recipe_data.get("prep_time", ""),
             cook_time=recipe_data.get("cook_time", ""),
             servings=recipe_data.get("servings", ""),
+            token_usage=recipe_data.get("token_usage"),
         )
 
         return RecipeResponse(success=True, recipe=recipe)

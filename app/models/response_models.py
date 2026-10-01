@@ -29,6 +29,7 @@ class RecipeData(BaseModel):
     prep_time: Optional[str] = ""
     cook_time: Optional[str] = ""
     servings: Optional[str] = ""
+    token_usage: Optional[dict] = None
 
 
 class RecipeResponse(BaseModel):
