@@ -15,3 +15,4 @@ pydantic[email]
 alembic
 sqlalchemy
 google-auth
+jinja2
