@@ -88,6 +88,35 @@ async def generate_recipe(request: Request, body: RecipeRequest):
             detail="An unexpected error occurred while generating your recipe. Please try again.",
         )
 
+from fastapi.responses import StreamingResponse
+
+@router.post(
+    "/stream",
+    summary="Stream Recipe Generation",
+    description="Stream a detailed AI-powered recipe back in real-time.",
+)
+async def stream_recipe(request: Request, body: RecipeRequest):
+    """Stream a recipe using Gemini AI."""
+    client_ip = request.client.host if request.client else "unknown"
+    rate_limiter.check(client_ip)
+
+    ingredients = sanitize_input(body.ingredients)
+    cuisine = sanitize_input(body.cuisine or "")
+    dietary = sanitize_input(body.dietary or "")
+
+    if not ingredients:
+        raise HTTPException(status_code=400, detail="Please enter at least one ingredient.")
+
+    return StreamingResponse(
+        ai_service.generate_recipe_stream(
+            ingredients=ingredients,
+            cuisine=cuisine,
+            dietary=dietary,
+        ),
+        media_type="text/plain"
+    )
+
+
 
 @router.post("/save", response_model=SavedRecipeResponse)
 async def save_recipe(body: SaveRecipeRequest, current_user: UserResponse = Depends(get_current_user)):
@@ -100,21 +129,21 @@ async def save_recipe(body: SaveRecipeRequest, current_user: UserResponse = Depe
         raise HTTPException(status_code=500, detail=f"Failed to save recipe: {e}")
 
 @router.get("/vault", response_model=RecipeHistoryResponse)
-async def get_personal_vault(limit: int = 20, offset: int = 0, current_user: UserResponse = Depends(get_current_user)):
+async def get_personal_vault(limit: int = 20, cursor: str = None, current_user: UserResponse = Depends(get_current_user)):
     try:
-        recipes, total = await recipe_db_service.get_user_vault_recipes(current_user.id, limit=limit, offset=offset)
+        recipes, total, next_cursor = await recipe_db_service.get_user_vault_recipes(current_user.id, limit=limit, cursor=cursor)
         items = [RecipeHistoryItem(**r) for r in recipes]
-        return RecipeHistoryResponse(success=True, recipes=items, total=total)
+        return RecipeHistoryResponse(success=True, recipes=items, total=total, next_cursor=next_cursor)
     except Exception as e:
         logger.error(f"Failed to fetch vault: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch vault: {e}")
 
 @router.get("/community", response_model=RecipeHistoryResponse)
-async def get_community_feed(limit: int = 20, offset: int = 0, cuisine: str = None, search: str = None):
+async def get_community_feed(limit: int = 20, cursor: str = None, cuisine: str = None, search: str = None):
     try:
-        recipes, total = await recipe_db_service.get_community_recipes(limit, offset, cuisine, search)
+        recipes, total, next_cursor = await recipe_db_service.get_community_recipes(limit, cursor, cuisine, search)
         items = [RecipeHistoryItem(**r) for r in recipes]
-        return RecipeHistoryResponse(success=True, recipes=items, total=total)
+        return RecipeHistoryResponse(success=True, recipes=items, total=total, next_cursor=next_cursor)
     except Exception as e:
         logger.error(f"Failed to fetch community feed: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch community feed: {e}")

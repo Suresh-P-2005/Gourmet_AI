@@ -106,6 +106,7 @@ async def generate_recipe(
                 # Generate content natively asynchronously
                 response = await model.generate_content_async(
                     prompt,
+                    generation_config={"response_mime_type": "application/json"},
                     request_options={"timeout": 15.0}
                 )
                 response_text = response.text.strip()
@@ -176,3 +177,69 @@ async def generate_recipe(
         f"Failed to generate recipe after {max_retries} attempts. "
         f"Last error: {last_error}"
     )
+
+async def generate_recipe_stream(ingredients: str, cuisine: str = "", dietary: str = "", max_retries: int = 3):
+    """
+    Generate a recipe using Gemini AI and yield chunks of the JSON response as they arrive.
+    Includes retry logic for temporary API failures.
+    """
+    settings = get_settings()
+    genai.configure(api_key=settings.GEMINI_API_KEY)
+    model = genai.GenerativeModel(settings.GEMINI_MODEL)
+
+    cuisine_line = f"Make it {cuisine} cuisine style." if cuisine else ""
+    dietary_line = f"Ensure it is {dietary} friendly." if dietary else ""
+
+    prompt = RECIPE_PROMPT.format(
+        ingredients=ingredients,
+        cuisine_line=cuisine_line,
+        dietary_line=dietary_line,
+        cuisine=cuisine or "Not specified",
+        dietary=dietary or "No restrictions",
+    )
+
+    last_error = None
+    for attempt in range(1, max_retries + 1):
+        try:
+            logger.info(f"Stream generation attempt {attempt}/{max_retries}")
+            response = await model.generate_content_async(
+                prompt,
+                generation_config={"response_mime_type": "application/json"},
+                stream=True,
+                request_options={"timeout": 30.0}
+            )
+            
+            # If we successfully get the response object, we can start yielding
+            async for chunk in response:
+                if chunk.text:
+                    yield chunk.text
+            return # Successful stream completion, exit function
+            
+        except ResourceExhausted:
+            logger.warning("Gemini API ResourceExhausted. Falling back to Groq stream...")
+            try:
+                from groq import AsyncGroq
+                groq_client = AsyncGroq(api_key=settings.GROQ_API_KEY, timeout=15.0)
+                chat_completion = await groq_client.chat.completions.create(
+                    messages=[{"role": "user", "content": prompt}],
+                    model="openai/gpt-oss-20b", # Supported Groq model for this API key
+                    response_format={"type": "json_object"},
+                    stream=True
+                )
+                async for chunk in chat_completion:
+                    if chunk.choices[0].delta.content:
+                        yield chunk.choices[0].delta.content
+                return
+            except Exception as e:
+                last_error = e
+                logger.error(f"Groq fallback failed: {e}")
+                
+        except Exception as e:
+            last_error = e
+            logger.warning(f"Stream attempt {attempt} failed: {e}")
+            if attempt < max_retries:
+                await asyncio.sleep(2 ** (attempt - 1))
+                
+    # If we exit the loop, all retries failed
+    logger.error(f"Streaming completely failed: {last_error}")
+    yield f'{{"error": "Streaming failed after {max_retries} attempts: {str(last_error)}"}}\n'

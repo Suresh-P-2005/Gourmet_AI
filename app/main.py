@@ -19,12 +19,13 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
 from app.core.config import get_settings
 from app.database import init_db, close_db
 
 # ── Import route modules ──────────────────────────────────────────────────────
-from app.api.routes import health, recipe, vision, auth
+from app.api.routes import health, recipe, vision, auth, admin, user
 
 # ── Logging ────────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -113,16 +114,15 @@ app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(recipe.router)
 app.include_router(vision.router)
+app.include_router(admin.router)
+app.include_router(user.router)
 
 
 # ── Serve Frontend ─────────────────────────────────────────────────────────────
-@app.get("/app.js", include_in_schema=False)
-async def serve_js():
-    """Serve the frontend JavaScript file."""
-    return FileResponse(
-        str(FRONTEND_DIR / "app.js"),
-        media_type="application/javascript",
-    )
+if (FRONTEND_DIR / "js").exists():
+    app.mount("/js", StaticFiles(directory=str(FRONTEND_DIR / "js")), name="js")
+if (FRONTEND_DIR / "css").exists():
+    app.mount("/css", StaticFiles(directory=str(FRONTEND_DIR / "css")), name="css")
 
 
 @app.get("/style.css", include_in_schema=False)
@@ -142,13 +142,22 @@ async def serve_preview():
     )
 
 
+TEMPLATES_DIR = FRONTEND_DIR / "templates"
+templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+
 @app.get("/", include_in_schema=False)
-async def serve_frontend():
+async def serve_frontend(request: Request):
     """Serve the main frontend HTML page."""
+    base_path = TEMPLATES_DIR / "base.html"
+    if base_path.exists():
+        return templates.TemplateResponse("base.html", {"request": request})
+    
+    # Fallback to legacy index.html
     index_path = FRONTEND_DIR / "index.html"
     if index_path.exists():
         return FileResponse(str(index_path), media_type="text/html")
+        
     return HTMLResponse(
-        content="<h1>Frontend not found</h1><p>Place index.html in the frontend/ directory.</p>",
+        content="<h1>Frontend not found</h1><p>Place base.html in the frontend/templates/ directory.</p>",
         status_code=404,
     )

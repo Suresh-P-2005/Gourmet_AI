@@ -1,0 +1,31 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Gourmet AI Recipe Generator — Premium Stylesheet
+   Features: Glassmorphism, Dark Mode, Micro-animations, Responsive Design
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Google Fonts ── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap');
+
+
+/* ── Reset & Base ── */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    line-height: 1.6;
+    color: var(--text-primary);
+    background: var(--gradient-bg);
+    min-height: 100vh;
+    overflow-x: hidden;
+    transition: background var(--transition-slow), color var(--transition-base);
+}

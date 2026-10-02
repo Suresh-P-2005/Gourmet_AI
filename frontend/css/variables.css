@@ -1,0 +1,100 @@
+/* ── CSS Custom Properties (Light Theme) ── */
+:root {
+    /* Primary palette - Vibrant Purple */
+    --primary-h: 270;
+    --primary-s: 85%;
+    --primary-l: 65%;
+    --primary: hsl(var(--primary-h), var(--primary-s), var(--primary-l));
+    --primary-dark: hsl(var(--primary-h), var(--primary-s), 55%);
+    --primary-light: hsl(var(--primary-h), var(--primary-s), 94%);
+
+    /* Secondary palette - Saffron Orange */
+    --secondary: hsl(35, 95%, 55%);
+    --secondary-dark: hsl(35, 95%, 45%);
+    --secondary-light: hsl(35, 95%, 90%);
+
+    /* Accent */
+    --accent: hsl(48, 100%, 71%);
+    --accent-dark: hsl(48, 100%, 55%);
+
+    /* Neutrals */
+    --bg-primary: hsl(220, 20%, 97%);
+    --bg-secondary: hsl(220, 15%, 95%);
+    --bg-card: rgba(255, 255, 255, 0.72);
+    --bg-card-solid: hsl(0, 0%, 100%);
+    --bg-modal: rgba(0, 0, 0, 0.6);
+
+    --text-primary: hsl(220, 30%, 8%); /* Near black for maximum contrast */
+    --text-secondary: hsl(220, 20%, 25%); /* Very dark gray */
+    --text-muted: hsl(220, 15%, 40%); /* Clear, visible gray */
+    --text-on-primary: #ffffff;
+
+    --border-color: hsl(220, 15%, 90%);
+    --border-focus: var(--secondary);
+
+    /* Glassmorphism */
+    --glass-bg: rgba(255, 255, 255, 0.65);
+    --glass-border: rgba(255, 255, 255, 0.3);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+    --glass-blur: 16px;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(270, 85%, 65%) 0%, hsl(35, 95%, 55%) 100%);
+    --gradient-warm: linear-gradient(135deg, hsl(270, 85%, 65%) 0%, hsl(320, 85%, 60%) 100%);
+    --gradient-cool: linear-gradient(135deg, hsl(210, 100%, 65%) 0%, hsl(270, 85%, 65%) 100%);
+    --gradient-bg: linear-gradient(135deg, hsl(220, 20%, 97%) 0%, hsl(260, 25%, 96%) 50%, hsl(35, 20%, 95%) 100%);
+
+    /* Shadows */
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0 24px 64px rgba(0, 0, 0, 0.12);
+    --shadow-primary: 0 8px 24px hsla(4, 100%, 68%, 0.3);
+    --shadow-secondary: 0 8px 24px hsla(174, 56%, 60%, 0.25);
+
+    /* Transitions */
+    --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-base: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    /* Spacing */
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 20px;
+    --radius-xl: 28px;
+    --radius-full: 9999px;
+
+    /* Toast */
+    --toast-success: hsl(145, 65%, 42%);
+    --toast-error: hsl(0, 72%, 56%);
+    --toast-info: hsl(210, 80%, 55%);
+}
+
+
+/* ── Dark Theme ── */
+[data-theme="dark"] {
+    --bg-primary: hsl(225, 25%, 10%);
+    --bg-secondary: hsl(225, 22%, 13%);
+    --bg-card: rgba(30, 35, 50, 0.72);
+    --bg-card-solid: hsl(225, 22%, 16%);
+    --bg-modal: rgba(0, 0, 0, 0.75);
+
+    --text-primary: hsl(220, 20%, 96%);
+    --text-secondary: hsl(220, 15%, 85%); /* Improved visibility */
+    --text-muted: hsl(220, 15%, 65%);
+
+    --border-color: hsl(225, 15%, 22%);
+
+    --glass-bg: rgba(30, 35, 50, 0.6);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+
+    --gradient-bg: linear-gradient(135deg, hsl(225, 25%, 10%) 0%, hsl(240, 20%, 12%) 50%, hsl(260, 20%, 12%) 100%);
+
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.35);
+    --shadow-xl: 0 24px 64px rgba(0, 0, 0, 0.4);
+    --shadow-primary: 0 8px 24px hsla(4, 100%, 68%, 0.2);
+}

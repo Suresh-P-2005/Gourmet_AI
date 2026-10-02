@@ -16,9 +16,8 @@ async def save_recipe(recipe_data: dict, user_id: int) -> int:
     """
     Save a recipe to the database.
     """
-    db = await get_db()
-    try:
-        async with db._conn.transaction():
+    async for db in get_db():
+        async with db.transaction():
             recipe_id = await db.fetchval(
                 """
                 INSERT INTO recipes (
@@ -44,100 +43,162 @@ async def save_recipe(recipe_data: dict, user_id: int) -> int:
             )
             logger.info(f"Recipe saved with ID: {recipe_id} for User {user_id}")
             return recipe_id
-    finally:
-        await db.close()
 
 def _format_recipe_row(row):
+    def parse_jsonb(val):
+        if not val:
+            return None
+        if isinstance(val, str):
+            try:
+                return json.loads(val)
+            except:
+                return val
+        return val
+
     return {
         "id": row["id"],
         "title": row["title"],
         "cuisine": row["cuisine"] or "",
         "cuisine_type": row["cuisine_type"] or "Other",
         "dietary": row["dietary"] or "",
-        "ingredients": json.loads(row["ingredients"]) if row["ingredients"] else [],
-        "instructions": json.loads(row["instructions"]) if row["instructions"] else [],
+        "ingredients": parse_jsonb(row["ingredients"]) or [],
+        "instructions": parse_jsonb(row["instructions"]) or [],
         "notes": row["notes"] or "",
         "personal_notes": row["personal_notes"] or "",
         "is_public": row.get("is_public", False),
-        "nutrition": json.loads(row["nutrition"]) if row["nutrition"] else {},
+        "nutrition": parse_jsonb(row["nutrition"]) or {},
         "suggestions": row["suggestions"] or "",
         "created_at": str(row["created_at"]) if row["created_at"] else "",
     }
 
-async def get_user_vault_recipes(user_id: int, limit: int = 20, offset: int = 0) -> tuple[list[dict], int]:
-    """Get saved recipes for a specific user."""
-    db = await get_db()
-    try:
-        total = await db.fetchval("SELECT COUNT(*) FROM recipes WHERE user_id = $1", user_id)
-        rows = await db.fetch(
-            "SELECT * FROM recipes WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3",
-            user_id, limit, offset,
-        )
-        recipes = [_format_recipe_row(row) for row in rows]
-        return recipes, total
-    finally:
-        await db.close()
+import base64
 
-async def get_community_recipes(limit: int = 20, offset: int = 0, cuisine_type: str = None, search: str = None) -> tuple[list[dict], int]:
-    """Get public community recipes."""
-    db = await get_db()
+def _encode_cursor(data: dict) -> str:
+    return base64.b64encode(json.dumps(data).encode('utf-8')).decode('utf-8')
+
+def _decode_cursor(cursor: str) -> dict:
+    if not cursor:
+        return {}
     try:
-        query = "SELECT * FROM recipes WHERE is_public = TRUE"
-        count_query = "SELECT COUNT(*) FROM recipes WHERE is_public = TRUE"
+        return json.loads(base64.b64decode(cursor).decode('utf-8'))
+    except Exception:
+        return {}
+
+async def get_user_vault_recipes(user_id: int, limit: int = 20, cursor: str = None) -> tuple[list[dict], int, Optional[str]]:
+    """Get saved recipes for a specific user using cursor pagination."""
+    async for db in get_db():
+        cursor_data = _decode_cursor(cursor)
+        last_created_at = cursor_data.get('created_at')
+        last_id = cursor_data.get('id')
+        
+        query = "SELECT *, count(*) over() as total_count FROM recipes WHERE user_id = $1"
+        args = [user_id]
+        
+        if last_created_at and last_id:
+            args.extend([last_created_at, last_id])
+            query += f" AND (created_at, id) < (${len(args)-1}::timestamp, ${len(args)})"
+            
+        args.append(limit)
+        query += f" ORDER BY created_at DESC, id DESC LIMIT ${len(args)}"
+        
+        rows = await db.fetch(query, *args)
+        total = rows[0]['total_count'] if rows else 0
+        recipes = [_format_recipe_row(row) for row in rows]
+        
+        next_cursor = None
+        if len(recipes) == limit:
+            last_recipe = rows[-1]
+            next_cursor = _encode_cursor({
+                'created_at': str(last_recipe['created_at']),
+                'id': last_recipe['id']
+            })
+            
+        return recipes, total, next_cursor
+
+async def get_community_recipes(limit: int = 20, cursor: str = None, cuisine_type: str = None, search: str = None) -> tuple[list[dict], int, Optional[str]]:
+    """Get public community recipes using cursor pagination (or offset for search)."""
+    async for db in get_db():
+        cursor_data = _decode_cursor(cursor)
+        query = "SELECT *, count(*) over() as total_count FROM recipes WHERE is_public = TRUE"
         args = []
         
         if cuisine_type and cuisine_type != 'All':
             args.append(cuisine_type)
             query += f" AND cuisine_type = ${len(args)}"
-            count_query += f" AND cuisine_type = ${len(args)}"
             
         if search:
-            search = f"%{search}%"
-            args.append(search)
-            query += f" AND (title ILIKE ${len(args)} OR ingredients ILIKE ${len(args)})"
-            count_query += f" AND (title ILIKE ${len(args)} OR ingredients ILIKE ${len(args)})"
+            # Fallback to offset pagination for full-text search
+            offset = cursor_data.get('offset', 0)
+            search_terms = ' & '.join([word + ':*' for word in search.split() if word.isalnum()])
+            if search_terms:
+                args.append(search_terms)
+                query += f" AND search_vector @@ to_tsquery('english', ${len(args)})"
+                query = query.replace("SELECT *", f"SELECT *, ts_rank(search_vector, to_tsquery('english', ${len(args)})) as rank")
             
-        total = await db.fetchval(count_query, *args)
-        
-        args.append(limit)
-        args.append(offset)
-        query += f" ORDER BY created_at DESC LIMIT ${len(args)-1} OFFSET ${len(args)}"
-        
-        rows = await db.fetch(query, *args)
-        recipes = [_format_recipe_row(row) for row in rows]
-        return recipes, total
-    finally:
-        await db.close()
+            args.extend([limit, offset])
+            if 'rank' in query:
+                query += f" ORDER BY rank DESC, created_at DESC, id DESC LIMIT ${len(args)-1} OFFSET ${len(args)}"
+            else:
+                query += f" ORDER BY created_at DESC, id DESC LIMIT ${len(args)-1} OFFSET ${len(args)}"
+                
+            rows = await db.fetch(query, *args)
+            total = rows[0]['total_count'] if rows else 0
+            recipes = [_format_recipe_row(row) for row in rows]
+            
+            next_cursor = None
+            if len(recipes) == limit:
+                next_cursor = _encode_cursor({'offset': offset + limit})
+                
+            return recipes, total, next_cursor
+            
+        else:
+            # High-speed cursor pagination for normal browsing
+            last_created_at = cursor_data.get('created_at')
+            last_id = cursor_data.get('id')
+            
+            if last_created_at and last_id:
+                args.extend([last_created_at, last_id])
+                query += f" AND (created_at, id) < (${len(args)-1}::timestamp, ${len(args)})"
+                
+            args.append(limit)
+            query += f" ORDER BY created_at DESC, id DESC LIMIT ${len(args)}"
+            
+            rows = await db.fetch(query, *args)
+            total = rows[0]['total_count'] if rows else 0
+            recipes = [_format_recipe_row(row) for row in rows]
+            
+            next_cursor = None
+            if len(recipes) == limit:
+                last_recipe = rows[-1]
+                next_cursor = _encode_cursor({
+                    'created_at': str(last_recipe['created_at']),
+                    'id': last_recipe['id']
+                })
+                
+            return recipes, total, next_cursor
 
 async def delete_recipe(recipe_id: int, user_id: int) -> bool:
     """Delete a recipe by ID, ensuring user ownership."""
-    db = await get_db()
-    try:
-        async with db._conn.transaction():
+    async for db in get_db():
+        async with db.transaction():
             result = await db.execute("DELETE FROM recipes WHERE id = $1 AND user_id = $2", recipe_id, user_id)
             deleted = result.startswith("DELETE ") and int(result.split()[1]) > 0
             if deleted:
                 logger.info(f"Recipe {recipe_id} deleted by {user_id}")
             return deleted
-    finally:
-        await db.close()
 
 async def toggle_recipe_visibility(recipe_id: int, user_id: int, is_public: bool) -> bool:
     """Toggle the is_public flag."""
-    db = await get_db()
-    try:
-        async with db._conn.transaction():
+    async for db in get_db():
+        async with db.transaction():
             result = await db.execute("UPDATE recipes SET is_public = $1 WHERE id = $2 AND user_id = $3", is_public, recipe_id, user_id)
             updated = result.startswith("UPDATE ") and int(result.split()[1]) > 0
             return updated
-    finally:
-        await db.close()
 
 async def bookmark_recipe(recipe_id: int, user_id: int) -> bool:
     """Save a community recipe to user's saved_recipes."""
-    db = await get_db()
-    try:
-        async with db._conn.transaction():
+    async for db in get_db():
+        async with db.transaction():
             # Ensure it is public or belongs to user
             recipe = await db.fetchrow("SELECT id FROM recipes WHERE id = $1 AND (is_public = TRUE OR user_id = $2)", recipe_id, user_id)
             if not recipe:
@@ -148,5 +209,3 @@ async def bookmark_recipe(recipe_id: int, user_id: int) -> bool:
                 return True
             except asyncpg.exceptions.UniqueViolationError:
                 return True # already bookmarked
-    finally:
-        await db.close()

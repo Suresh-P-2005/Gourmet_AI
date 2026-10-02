@@ -1,0 +1,38 @@
+/* ── Animations ── */
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes wiggle {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-5deg); }
+    75% { transform: rotate(5deg); }
+}
+
+/* Staggered animation for list items */
+.recipe-result.visible .ingredients-list li,
+.recipe-result.visible .instructions-list li {
+    animation: fadeUp 0.4s var(--transition-base) both;
+}
+
+.recipe-result.visible .ingredients-list li:nth-child(1) { animation-delay: 0.05s; }
+.recipe-result.visible .ingredients-list li:nth-child(2) { animation-delay: 0.1s; }
+.recipe-result.visible .ingredients-list li:nth-child(3) { animation-delay: 0.15s; }
+.recipe-result.visible .ingredients-list li:nth-child(4) { animation-delay: 0.2s; }
+.recipe-result.visible .ingredients-list li:nth-child(5) { animation-delay: 0.25s; }
+.recipe-result.visible .ingredients-list li:nth-child(6) { animation-delay: 0.3s; }
+.recipe-result.visible .ingredients-list li:nth-child(7) { animation-delay: 0.35s; }
+.recipe-result.visible .ingredients-list li:nth-child(8) { animation-delay: 0.4s; }
+
+.recipe-result.visible .instructions-list li:nth-child(1) { animation-delay: 0.1s; }
+.recipe-result.visible .instructions-list li:nth-child(2) { animation-delay: 0.18s; }
+.recipe-result.visible .instructions-list li:nth-child(3) { animation-delay: 0.26s; }
+.recipe-result.visible .instructions-list li:nth-child(4) { animation-delay: 0.34s; }
+.recipe-result.visible .instructions-list li:nth-child(5) { animation-delay: 0.42s; }
+.recipe-result.visible .instructions-list li:nth-child(6) { animation-delay: 0.5s; }

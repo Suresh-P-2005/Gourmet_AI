@@ -36,6 +36,10 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "your-super-secret-key-for-development"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7 # 1 week
 
+    # ── Google OAuth ───────────────────────────────────────────
+    GOOGLE_CLIENT_ID: Optional[str] = None
+    GOOGLE_CLIENT_SECRET: Optional[str] = None
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

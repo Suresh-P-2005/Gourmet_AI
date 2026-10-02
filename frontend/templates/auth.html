@@ -1,0 +1,163 @@
+<!-- ── View: AUTH ────────────────────────────────────────────────── -->
+        <div id="authView" style="display: block;">
+            
+            <style>
+                .auth-container {
+                    perspective: 1200px;
+                    width: 100%;
+                    max-width: 420px;
+                    margin: 40px auto 80px;
+                    height: 620px;
+                }
+                .auth-flipper {
+                    width: 100%;
+                    height: 100%;
+                    position: relative;
+                    transition: transform 0.9s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+                    transform-style: preserve-3d;
+                }
+                .auth-flipper.flipped {
+                    transform: rotateY(180deg);
+                }
+                .auth-flipper.otp-view {
+                    transform: rotateY(0deg) !important;
+                }
+                .auth-front, .auth-back, .auth-otp {
+                    width: 100%;
+                    height: 100%;
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    backface-visibility: hidden;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    padding: 3rem 2.5rem !important;
+                    animation: none !important;
+                    opacity: 1 !important;
+                    transition: opacity 0.4s ease, visibility 0.4s ease;
+                }
+                .auth-back {
+                    transform: rotateY(180deg) !important;
+                }
+                .auth-otp {
+                    transform: none !important;
+                    opacity: 0 !important;
+                    visibility: hidden;
+                    z-index: 10;
+                }
+                .auth-flipper.otp-view .auth-otp {
+                    opacity: 1 !important;
+                    visibility: visible;
+                }
+                .auth-flipper.otp-view .auth-front,
+                .auth-flipper.otp-view .auth-back {
+                    opacity: 0 !important;
+                    visibility: hidden;
+                }
+                .auth-title {
+                    text-align: center;
+                    font-family: 'Playfair Display', serif;
+                    font-size: 2.2rem;
+                    font-weight: 700;
+                    margin-bottom: 25px;
+                    background: var(--gradient-primary);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                }
+                .auth-toggle-link {
+                    margin-top: 25px;
+                    text-align: center;
+                    cursor: pointer;
+                    color: var(--text-secondary);
+                    font-size: 0.95rem;
+                    font-weight: 500;
+                }
+                .auth-toggle-link span {
+                    color: var(--primary);
+                    font-weight: 600;
+                    transition: all 0.3s ease;
+                }
+                .auth-toggle-link:hover span {
+                    text-decoration: underline;
+                }
+            </style>
+
+            <div class="auth-container">
+                <div class="auth-flipper" id="authFlipper">
+                    
+                    <!-- LOGIN (FRONT) -->
+                    <div class="glass-card glass-content auth-front">
+                        <h2 class="auth-title">Welcome Back</h2>
+                        <form id="loginForm" style="display: flex; flex-direction: column; gap: 18px;" onsubmit="event.preventDefault(); handleLogin();">
+                            <div class="form-group" style="margin:0">
+                                <label>Username or Email</label>
+                                <input type="text" id="authUsername" class="form-input" required placeholder="Enter your username or email">
+                            </div>
+                            <div class="form-group" style="margin:0">
+                                <label>Password</label>
+                                <input type="password" id="authPassword" class="form-input" required placeholder="Enter your password">
+                            </div>
+                            <button type="submit" class="glass-btn btn btn-primary btn-full" style="margin-top: 10px;">Login</button>
+                        </form>
+                        
+                        <div style="display: flex; align-items: center; margin: 15px 0;">
+                            <hr style="flex-grow: 1; border: none; border-top: 1px solid rgba(255,255,255,0.2);">
+                            <span style="padding: 0 10px; font-size: 0.8rem; color: var(--text-secondary);">or</span>
+                            <hr style="flex-grow: 1; border: none; border-top: 1px solid rgba(255,255,255,0.2);">
+                        </div>
+                        
+                        <div id="googleLoginBtn" style="display: flex; justify-content: center;"></div>
+                        
+                        <div class="auth-toggle-link" onclick="toggleAuthFlip()">New here? <span>Create an account</span></div>
+                    </div>
+
+                    <!-- SIGN UP (BACK) -->
+                    <div class="glass-card glass-content auth-back">
+                        <h2 class="auth-title">Join Gourmet AI</h2>
+                        <form id="signupForm" style="display: flex; flex-direction: column; gap: 15px;" onsubmit="event.preventDefault(); handleSignup();">
+                            <div class="form-group" style="margin:0">
+                                <label>Username</label>
+                                <input type="text" id="signupUsername" class="form-input" required placeholder="Choose a username">
+                            </div>
+                            <div class="form-group" style="margin:0">
+                                <label>Email</label>
+                                <input type="email" id="signupEmail" class="form-input" required placeholder="Your email address">
+                            </div>
+                            <div class="form-group" style="margin:0">
+                                <label>Password</label>
+                                <input type="password" id="signupPassword" class="form-input" required placeholder="Create a password">
+                            </div>
+                            <button type="submit" class="glass-btn btn btn-primary btn-full" style="margin-top: 10px;">Sign Up</button>
+                        </form>
+                        
+                        <div style="display: flex; align-items: center; margin: 10px 0;">
+                            <hr style="flex-grow: 1; border: none; border-top: 1px solid rgba(255,255,255,0.2);">
+                            <span style="padding: 0 10px; font-size: 0.8rem; color: var(--text-secondary);">or</span>
+                            <hr style="flex-grow: 1; border: none; border-top: 1px solid rgba(255,255,255,0.2);">
+                        </div>
+                        
+                        <div id="googleSignupBtn" style="display: flex; justify-content: center;"></div>
+                        
+                        <div class="auth-toggle-link" onclick="toggleAuthFlip()">Already a member? <span>Login here</span></div>
+                    </div>
+                    
+                    <!-- OTP VERIFICATION (TOP FACE) -->
+                    <div class="glass-card glass-content auth-otp">
+                        <h2 class="auth-title">Verify Email</h2>
+                        <p style="text-align: center; margin-bottom: 20px; color: var(--text-secondary); font-size: 0.9em;">
+                            We've sent a 6-digit code to <br><strong id="otpEmailDisplay" style="color: var(--text)"></strong>
+                        </p>
+                        <form id="otpForm" style="display: flex; flex-direction: column; gap: 15px;" onsubmit="event.preventDefault(); handleOTPVerify();">
+                            <div class="form-group" style="margin:0; text-align: center;">
+                                <input type="text" id="otpInput" class="form-input" required placeholder="• • • • • •" maxlength="6" style="text-align: center; letter-spacing: 0.5em; font-size: 1.5rem; font-weight: bold;">
+                            </div>
+                            <button type="submit" class="glass-btn btn btn-primary btn-full" style="margin-top: 10px;">Verify Code</button>
+                        </form>
+                        <div class="auth-toggle-link" onclick="handleResendOTP()">Didn't receive it? <span>Resend</span></div>
+                        <div class="auth-toggle-link" onclick="document.getElementById('authFlipper').className = 'auth-flipper'" style="margin-top: 10px;"><span>Back to Login</span></div>
+                    </div>
+
+                </div>
+            </div>
+        </div>

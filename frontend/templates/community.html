@@ -1,0 +1,19 @@
+<!-- ── View: COMMUNITY FEED ──────────────────────────────────────── -->
+        <div id="communityView" style="display: none;">
+            <div class="glass-card glass-content">
+                <h2>🌍 Community Feed</h2>
+                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <input type="text" id="searchCommunity" class="form-input" placeholder="Search recipes..." style="flex: 1;">
+                    <button class="glass-btn btn btn-primary" onclick="loadCommunityFeed()">Search</button>
+                </div>
+                <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+                    <button class="glass-btn btn btn-secondary" onclick="loadCommunityFeed('All')">All</button>
+                    <button class="glass-btn btn btn-secondary" onclick="loadCommunityFeed('North Indian')">North Indian</button>
+                    <button class="glass-btn btn btn-secondary" onclick="loadCommunityFeed('South Indian')">South Indian</button>
+                    <button class="glass-btn btn btn-secondary" onclick="loadCommunityFeed('Western')">Western</button>
+                </div>
+                <div id="communityGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+                    <!-- Community Recipe Cards go here -->
+                </div>
+            </div>
+        </div>

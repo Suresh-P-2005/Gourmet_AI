@@ -75,7 +75,8 @@ class RecipeHistoryResponse(BaseModel):
     """Paginated list of saved recipes."""
     success: bool = True
     recipes: list[RecipeHistoryItem]
-    total: int
+    total: Optional[int] = 0
+    next_cursor: Optional[str] = None
 
 
 class HealthResponse(BaseModel):
@@ -101,3 +102,4 @@ class UserResponse(BaseModel):
     id: int
     username: str
     email: str
+    is_admin: bool = False

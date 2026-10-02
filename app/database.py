@@ -38,25 +38,11 @@ async def close_db() -> None:
         db_pool = None
 
 
-class ConnectionWrapper:
-    """Wraps an asyncpg connection to release it back to the pool on close()."""
-    def __init__(self, pool: asyncpg.Pool, conn: asyncpg.Connection):
-        self._pool = pool
-        self._conn = conn
-
-    def __getattr__(self, name):
-        return getattr(self._conn, name)
-
-    async def close(self):
-        """Release the connection back to the pool."""
-        await self._pool.release(self._conn)
-
-
-async def get_db() -> ConnectionWrapper:
-    """Acquire a connection from the pool. Caller must call await db.close()."""
+async def get_db():
+    """Acquire a connection from the pool as an async generator."""
     global db_pool
     if not db_pool:
         raise RuntimeError("Database pool is not initialized")
     
-    conn = await db_pool.acquire()
-    return ConnectionWrapper(db_pool, conn)
+    async with db_pool.acquire() as conn:
+        yield conn

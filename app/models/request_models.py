@@ -61,3 +61,10 @@ class UserCreateRequest(BaseModel):
 class UserLoginRequest(BaseModel):
     username: str
     password: str
+
+class GoogleLoginRequest(BaseModel):
+    token: str
+
+class VerifyOTPRequest(BaseModel):
+    email: EmailStr
+    otp: str = Field(..., min_length=6, max_length=6)
