@@ -262,14 +262,40 @@
 
 @media (max-width: 860px) {
     .top-navbar {
-        padding: 0.8rem 1.5rem;
+        padding: 0.6rem 1rem;
+        flex-wrap: wrap;
+        gap: 0.8rem;
+    }
+
+    .top-navbar .nav-logo {
+        flex: 1 1 auto;
+        font-size: 1.2rem;
+    }
+    
+    .top-navbar .nav-logo .logo-icon {
+        font-size: 1.4rem !important;
+    }
+
+    .top-navbar .nav-actions {
+        flex: 0 1 auto;
+        gap: 0.5rem;
     }
 
     .top-navbar .nav-links {
-        display: none;
+        flex: 1 1 100%;
+        justify-content: center;
+        overflow-x: auto;
+        padding-bottom: 0.3rem;
+    }
+    
+    .top-navbar .nav-links button {
+        white-space: nowrap;
+        padding: 0.4rem 0.8rem;
+        font-size: 0.85rem;
     }
 
-    .nav-burger {
-        display: flex;
+    #languageSwitcher {
+        max-width: 110px;
+        padding: 0.2rem !important;
     }
 }
