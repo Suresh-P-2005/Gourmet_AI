@@ -28,6 +28,12 @@ class RecipeRequest(BaseModel):
         description="Dietary preferences or restrictions",
         examples=["vegetarian", "keto", "gluten-free"],
     )
+    language: Optional[str] = Field(
+        default="English",
+        max_length=50,
+        description="Language for the recipe output",
+        examples=["English", "Hindi", "Tamil"],
+    )
 
 
 class VisionDetectRequest(BaseModel):
@@ -45,6 +51,7 @@ class SaveRecipeRequest(BaseModel):
     cuisine: Optional[str] = ""
     cuisine_type: Optional[str] = "Other"
     dietary: Optional[str] = ""
+    language: Optional[str] = "English"
     ingredients: list[constr(strip_whitespace=True, min_length=1)] = Field(..., min_length=1)
     instructions: list[constr(strip_whitespace=True, min_length=1)] = Field(..., min_length=1)
     notes: Optional[str] = ""

@@ -57,7 +57,7 @@
             <!-- ── Recipe Form (Always Visible) ──────────────────────────── -->
             <form id="recipeForm">
                 <div class="form-group">
-                    <label for="ingredientsInput">
+                    <label for="ingredientsInput" data-i18n="ingredients_label">
                         Ingredients
                         <span class="label-hint">— what's in your kitchen?</span>
                     </label>
@@ -66,13 +66,14 @@
                         id="ingredientsInput"
                         name="ingredients"
                         required
+                        data-i18n="ingredients_placeholder"
                         placeholder="e.g., chicken breast, bell peppers, garlic, olive oil, rice..."
                     ></textarea>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="cuisineInput">
+                        <label for="cuisineInput" data-i18n="cuisine_label">
                             Cuisine Style
                             <span class="label-hint">(optional)</span>
                         </label>
@@ -81,11 +82,12 @@
                             class="form-input"
                             id="cuisineInput"
                             name="cuisine"
+                            data-i18n="cuisine_placeholder"
                             placeholder="e.g., Italian, Thai, Indian"
                         >
                     </div>
                     <div class="form-group">
-                        <label for="dietaryInput">
+                        <label for="dietaryInput" data-i18n="dietary_label">
                             Dietary Preferences
                             <span class="label-hint">(optional)</span>
                         </label>
@@ -94,12 +96,13 @@
                             class="form-input"
                             id="dietaryInput"
                             name="dietary"
+                            data-i18n="dietary_placeholder"
                             placeholder="e.g., vegan, keto, gluten-free"
                         >
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary btn-full" id="submitBtn">
+                <button type="submit" class="btn btn-primary btn-full" id="submitBtn" data-i18n="generate_btn">
                     ✨ Generate Recipe
                 </button>
             </form>

@@ -8,7 +8,7 @@ import logging
 from typing import Optional
 
 import google.generativeai as genai
-from google.api_core.exceptions import ResourceExhausted
+from google.api_core.exceptions import ResourceExhausted, ServiceUnavailable, DeadlineExceeded, InternalServerError
 from groq import AsyncGroq
 
 from app.core.config import get_settings
@@ -21,6 +21,9 @@ RECIPE_PROMPT = """You are a world-class professional chef and nutritionist.
 Generate a detailed, creative recipe using these ingredients: {ingredients}.
 {cuisine_line}
 {dietary_line}
+
+CRITICAL: You MUST write the content values (title, ingredients, instructions, notes, suggestions) entirely in the {language} language. 
+However, keep all the JSON keys EXACTLY as specified in English below.
 
 You MUST respond with ONLY a valid JSON object (no markdown, no extra text) in this exact structure:
 {{
@@ -63,6 +66,7 @@ async def generate_recipe(
     ingredients: str,
     cuisine: str = "",
     dietary: str = "",
+    language: str = "English",
     max_retries: int = 3,
 ) -> dict:
     """
@@ -94,6 +98,7 @@ async def generate_recipe(
         dietary_line=dietary_line,
         cuisine=cuisine or "Not specified",
         dietary=dietary or "No restrictions",
+        language=language,
     )
 
     last_error: Optional[Exception] = None
@@ -123,8 +128,8 @@ async def generate_recipe(
                     }
                 logger.info(f"[Gemini Token Usage] Input: {token_usage['input']}, Output: {token_usage['output']}, Total: {token_usage['total']}")
 
-            except ResourceExhausted:
-                logger.warning("Gemini API ResourceExhausted. Falling back to Groq...")
+            except (ResourceExhausted, ServiceUnavailable, DeadlineExceeded, InternalServerError):
+                logger.warning("Gemini API failed or overloaded. Falling back to Groq...")
                 groq_client = AsyncGroq(api_key=settings.GROQ_API_KEY, timeout=15.0)
                 chat_completion = await groq_client.chat.completions.create(
                     messages=[
@@ -134,7 +139,6 @@ async def generate_recipe(
                         }
                     ],
                     model="openai/gpt-oss-20b",
-                    response_format={"type": "json_object"},
                 )
                 response_text = chat_completion.choices[0].message.content.strip()
 
@@ -178,7 +182,7 @@ async def generate_recipe(
         f"Last error: {last_error}"
     )
 
-async def generate_recipe_stream(ingredients: str, cuisine: str = "", dietary: str = "", max_retries: int = 3):
+async def generate_recipe_stream(ingredients: str, cuisine: str = "", dietary: str = "", language: str = "English", max_retries: int = 3):
     """
     Generate a recipe using Gemini AI and yield chunks of the JSON response as they arrive.
     Includes retry logic for temporary API failures.
@@ -196,6 +200,7 @@ async def generate_recipe_stream(ingredients: str, cuisine: str = "", dietary: s
         dietary_line=dietary_line,
         cuisine=cuisine or "Not specified",
         dietary=dietary or "No restrictions",
+        language=language,
     )
 
     last_error = None
@@ -215,15 +220,14 @@ async def generate_recipe_stream(ingredients: str, cuisine: str = "", dietary: s
                     yield chunk.text
             return # Successful stream completion, exit function
             
-        except ResourceExhausted:
-            logger.warning("Gemini API ResourceExhausted. Falling back to Groq stream...")
+        except (ResourceExhausted, ServiceUnavailable, DeadlineExceeded, InternalServerError):
+            logger.warning("Gemini API failed or overloaded. Falling back to Groq stream...")
             try:
                 from groq import AsyncGroq
                 groq_client = AsyncGroq(api_key=settings.GROQ_API_KEY, timeout=15.0)
                 chat_completion = await groq_client.chat.completions.create(
                     messages=[{"role": "user", "content": prompt}],
                     model="openai/gpt-oss-20b", # Supported Groq model for this API key
-                    response_format={"type": "json_object"},
                     stream=True
                 )
                 async for chunk in chat_completion:

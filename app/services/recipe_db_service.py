@@ -21,11 +21,11 @@ async def save_recipe(recipe_data: dict, user_id: int) -> int:
             recipe_id = await db.fetchval(
                 """
                 INSERT INTO recipes (
-                    user_id, title, cuisine, cuisine_type, dietary, 
+                    user_id, title, cuisine, cuisine_type, dietary, language,
                     ingredients, instructions, notes, personal_notes, 
                     is_public, nutrition, suggestions
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
                 RETURNING id
                 """,
                 user_id,
@@ -33,6 +33,7 @@ async def save_recipe(recipe_data: dict, user_id: int) -> int:
                 recipe_data.get("cuisine", ""),
                 recipe_data.get("cuisine_type", "Other"),
                 recipe_data.get("dietary", ""),
+                recipe_data.get("language", "English"),
                 json.dumps(recipe_data.get("ingredients", [])),
                 json.dumps(recipe_data.get("instructions", [])),
                 recipe_data.get("notes", ""),
@@ -61,6 +62,7 @@ def _format_recipe_row(row):
         "cuisine": row["cuisine"] or "",
         "cuisine_type": row["cuisine_type"] or "Other",
         "dietary": row["dietary"] or "",
+        "language": row.get("language") or "English",
         "ingredients": parse_jsonb(row["ingredients"]) or [],
         "instructions": parse_jsonb(row["instructions"]) or [],
         "notes": row["notes"] or "",

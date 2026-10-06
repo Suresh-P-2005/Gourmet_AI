@@ -24,6 +24,12 @@
     <link rel="stylesheet" href="/css/main.css">
     <link rel="stylesheet" href="/css/navbar.css">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        #languageSwitcher option {
+            background-color: var(--bg-color, #ffffff);
+            color: var(--text-color, #000000);
+        }
+    </style>
 </head>
 <body>
 
@@ -58,6 +64,22 @@
             </div>
             
             <div class="nav-actions">
+                <select id="languageSwitcher" class="glass-input" style="padding: 0.3rem 0.5rem; font-size: 0.9rem; margin-right: 0.5rem; background: var(--surface-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+                    <option value="English">English</option>
+                    <option value="Hindi">हिन्दी (Hindi)</option>
+                    <option value="Bengali">বাংলা (Bengali)</option>
+                    <option value="Telugu">తెలుగు (Telugu)</option>
+                    <option value="Marathi">मराठी (Marathi)</option>
+                    <option value="Tamil">தமிழ் (Tamil)</option>
+                    <option value="Urdu">اردو (Urdu)</option>
+                    <option value="Gujarati">ગુજરાતી (Gujarati)</option>
+                    <option value="Kannada">ಕನ್ನಡ (Kannada)</option>
+                    <option value="Odia">ଓଡ଼ିଆ (Odia)</option>
+                    <option value="Malayalam">മലയാളം (Malayalam)</option>
+                    <option value="Punjabi">ਪੰਜਾਬੀ (Punjabi)</option>
+                    <option value="Assamese">অসমীয়া (Assamese)</option>
+                </select>
+
                 <button class="theme-toggle" id="themeToggleNav" title="Toggle dark mode" style="position: static; width: 38px; height: 38px; font-size: 1.1rem; box-shadow: none;">🌙</button>
                 
                 <div class="avatar-btn" id="navAvatarBtn" onclick="switchView('accountView'); loadAccountProfile();" title="Account Profile">
@@ -141,6 +163,7 @@
             </footer>
         </div>
 
+    <script src="/js/i18n.js?v=2"></script>
     <script src="/js/state.js?v=2"></script>
     <script src="/js/init.js?v=2"></script>
     <script src="/js/ui.js?v=2"></script>

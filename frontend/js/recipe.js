@@ -9,6 +9,7 @@ async function generateRecipe() {
     const ingredients = $('#ingredientsInput').value.trim();
     const cuisine = $('#cuisineInput').value.trim();
     const dietary = $('#dietaryInput').value.trim();
+    const language = $('#languageSwitcher') ? $('#languageSwitcher').value : 'English';
 
     if (!ingredients) {
         showToast('Please enter at least one ingredient.', 'error');
@@ -24,7 +25,7 @@ async function generateRecipe() {
         const response = await fetch(`${API_BASE}/api/recipe/stream`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ingredients, cuisine, dietary }),
+            body: JSON.stringify({ ingredients, cuisine, dietary, language }),
         });
 
         if (!response.ok) {
@@ -60,7 +61,16 @@ async function generateRecipe() {
         $('#streamResult').style.display = 'none';
 
         try {
-            const recipeData = JSON.parse(fullJsonText);
+            // Find the first { and last } to extract just the JSON object
+            let cleanJsonText = fullJsonText;
+            const startIdx = cleanJsonText.indexOf('{');
+            const endIdx = cleanJsonText.lastIndexOf('}');
+            
+            if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+                cleanJsonText = cleanJsonText.substring(startIdx, endIdx + 1);
+            }
+            
+            const recipeData = JSON.parse(cleanJsonText);
             if (recipeData.error) throw new Error(recipeData.error);
             window.appState.currentRecipe = recipeData;
             showToast('Recipe generated successfully! 🎉', 'success');

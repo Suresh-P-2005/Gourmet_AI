@@ -50,6 +50,7 @@ async def generate_recipe(request: Request, body: RecipeRequest):
             ingredients=ingredients,
             cuisine=cuisine,
             dietary=dietary,
+            language=body.language,
         )
 
         # Build structured response with nutrition info
@@ -112,6 +113,7 @@ async def stream_recipe(request: Request, body: RecipeRequest):
             ingredients=ingredients,
             cuisine=cuisine,
             dietary=dietary,
+            language=body.language,
         ),
         media_type="text/plain"
     )
